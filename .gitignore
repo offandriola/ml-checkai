@@ -1,0 +1,16 @@
+# chaves e variáveis de ambiente
+.env
+*.env
+google-factcheck-api-key.env
+
+# dados gerados
+dados/**/*.csv
+
+# python/cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# ambiente virtual
+.venv/
+venv/
