@@ -54,7 +54,6 @@ ml-checkai/
 └── requirements.txt
 ```
 
-> Observação: a pasta `scr/` armazena os notebooks e scripts do projeto. O nome recomendado para essa pasta em projetos de programação é `src/`, abreviação de *source*. Futuramente, a pasta poderá ser renomeada para seguir essa convenção.
 
 ---
 
