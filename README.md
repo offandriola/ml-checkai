@@ -10,7 +10,7 @@ O projeto utiliza técnicas de **Machine Learning supervisionado**, com constru�
 
 ## Objetivo do Projeto
 
-O objetivo principal do CheckAI é construir uma base de dados e um modelo de classificação capaz de analisar conteúdos políticos e retornar uma classificação binária:
+O objetivo principal do CheckAI é construir uma base de dados e um modelo de classificação capaz de analisar conteúdos políticos e retornar uma classificação binária (MVP):
 
 - **Verdadeiro**
 - **Falso**
