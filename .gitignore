@@ -3,6 +3,12 @@
 *.env
 google-factcheck-api-key.env
 
+# dados brutos/gerados
+dados/**/*.csv
+dados/**/*.xlsx
+dados/**/*.parquet
+dados/**/*.zip
+
 # python/cache
 __pycache__/
 *.pyc
