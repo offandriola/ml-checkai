@@ -1,6 +1,27 @@
+# ==============================================================================
+# CheckAI — Dependências do Projeto
+# ==============================================================================
+# Este arquivo lista todas as bibliotecas necessárias para executar o backend
+# (API FastAPI) e os notebooks de coleta de dados do projeto CheckAI.
+#
+# Instalação:
+#   pip install -r requirements.txt
+# ==============================================================================
+
+# --- Coleta de Dados (Notebooks + Services) ---
 pandas>=2.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0
+feedparser>=6.0.12
+
+# --- Notebooks Jupyter ---
 notebook>=7.0.0
 ipykernel>=6.0.0
-feedparser>=6.0.12
+
+# --- Backend API (FastAPI) ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# --- Machine Learning (futuro — treinamento e predição) ---
+scikit-learn>=1.5.0
+joblib>=1.4.0
