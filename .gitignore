@@ -2,6 +2,7 @@
 .env
 *.env
 google-factcheck-api-key.env
+portal-transparencia-api-key.env
 
 # dados brutos/gerados
 dados/**/*.csv
