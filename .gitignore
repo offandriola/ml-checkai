@@ -10,6 +10,11 @@ dados/**/*.xlsx
 dados/**/*.parquet
 dados/**/*.zip
 
+# permitir datasets finais pequenos e versionados
+!dados/dataset_unificado/
+!dados/dataset_unificado/final/
+!dados/dataset_unificado/final/dataset_final_treino_v1.csv
+
 # python/cache
 __pycache__/
 *.pyc
@@ -22,3 +27,6 @@ __pycache__/
 # ambiente virtual
 .venv/
 venv/
+
+# arquivos temporários de editor
+*.swp
