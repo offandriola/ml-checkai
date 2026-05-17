@@ -1,0 +1,33 @@
+{
+  "nome_modelo": "baseline_tfidf_logreg_v1",
+  "data_treino": "2026-05-17 16:52:07",
+  "dataset": "dataset_final_treino_v1.csv",
+  "seed": 42,
+  "test_size": 0.2,
+  "n_treino": 640,
+  "n_teste": 160,
+  "estratificacao": "label_detalhe",
+  "features": [
+    "texto_principal"
+  ],
+  "tfidf_max_features": 5000,
+  "tfidf_ngram_range": [
+    1,
+    2
+  ],
+  "tfidf_sublinear_tf": true,
+  "tfidf_min_df": 2,
+  "tfidf_max_df": 0.9,
+  "logreg_C": 1.0,
+  "logreg_solver": "lbfgs",
+  "logreg_class_weight": "balanced",
+  "n_features_tfidf": 2640,
+  "metricas_teste": {
+    "acuracia": 0.8625,
+    "precisao_pos": 0.9394,
+    "recall_pos": 0.775,
+    "f1_pos": 0.8493,
+    "f1_macro": 0.8614,
+    "roc_auc": 0.9359
+  }
+}
