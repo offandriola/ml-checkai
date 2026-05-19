@@ -1,0 +1,46 @@
+{
+  "nome_modelo": "baseline_tfidf_logreg_v2_balanced",
+  "data_treino": "2026-05-19 01:02:32",
+  "dataset": "dataset_final_treino_v2_balanced_2026-05-19_00-48-15.csv",
+  "caminho_dataset": "c:\\Users\\offan\\Desktop\\ml-checkai\\dados\\dataset_unificado\\final\\dataset_final_treino_v2_balanced_2026-05-19_00-48-15.csv",
+  "random_state": 42,
+  "test_size": 0.2,
+  "split": "80/20 stratify=label",
+  "n_total": 508,
+  "n_treino": 406,
+  "n_teste": 102,
+  "distribuicao_label": {
+    "0": 254,
+    "1": 254
+  },
+  "features": [
+    "texto_principal"
+  ],
+  "tfidf_params": {
+    "max_features": 5000,
+    "ngram_range": [
+      1,
+      2
+    ],
+    "sublinear_tf": true,
+    "min_df": 2,
+    "max_df": 0.9,
+    "analyzer": "word"
+  },
+  "logreg_params": {
+    "C": 1.0,
+    "solver": "lbfgs",
+    "max_iter": 1000,
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "n_features_tfidf": 1858,
+  "metricas_teste": {
+    "acuracia": 0.902,
+    "precisao_pos": 0.9362,
+    "recall_pos": 0.8627,
+    "f1_pos": 0.898,
+    "f1_macro": 0.9018,
+    "roc_auc": 0.9708
+  }
+}
