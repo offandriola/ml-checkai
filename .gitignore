@@ -38,3 +38,9 @@ web/out/
 web/dist/
 web/.turbo/
 web/.vercel/
+
+# Dados brutos de datasets acadêmicos
+dados/pipeline_datasets_academicos/raw/**
+!dados/pipeline_datasets_academicos/raw/
+!dados/pipeline_datasets_academicos/raw/**/
+!dados/pipeline_datasets_academicos/raw/**/.gitkeep
