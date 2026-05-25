@@ -36,7 +36,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from api.config import API_TITULO, API_DESCRICAO, API_VERSAO, API_DEBUG
-from api.routes import health, coleta, dados, classificador
+from api.routes import health, coleta, dados, classificador, auth
 from api.services.classificador import carregar_modelo
 
 
@@ -297,6 +297,7 @@ app.include_router(health.router)
 app.include_router(coleta.router)
 app.include_router(dados.router)
 app.include_router(classificador.router)
+app.include_router(auth.router)
 
 
 # ==============================================================================

@@ -255,3 +255,62 @@ class StatusModeloResponse(BaseModel):
     mensagem: str = Field(
         description="Descrição do status atual do modelo",
     )
+
+
+# ==============================================================================
+# Autenticação / Usuários
+# ==============================================================================
+
+from pydantic import EmailStr
+
+
+class CadastroRequest(BaseModel):
+    """Dados de entrada para cadastro de um novo usuário."""
+
+    nome: str = Field(
+        min_length=2,
+        max_length=120,
+        description="Nome completo do usuário",
+        examples=["Gabriel Andriola"],
+    )
+    email: EmailStr = Field(
+        description="E-mail do usuário (usado para login)",
+        examples=["gabriel@exemplo.com"],
+    )
+    senha: str = Field(
+        min_length=8,
+        max_length=72,  # bcrypt trunca em 72 bytes; validamos aqui pra evitar surpresa
+        description="Senha do usuário (mínimo 8 caracteres)",
+        examples=["senhaSegura123"],
+    )
+
+
+class UsuarioResponse(BaseModel):
+    """Dados públicos de um usuário (NUNCA inclui a senha/hash)."""
+
+    id: int = Field(description="Identificador único do usuário")
+    nome: str = Field(description="Nome do usuário")
+    email: EmailStr = Field(description="E-mail do usuário")
+
+    # Permite que o Pydantic leia direto de um objeto SQLAlchemy
+    model_config = {"from_attributes": True}
+
+
+class LoginRequest(BaseModel):
+    """Dados de entrada para login."""
+
+    email: EmailStr = Field(
+        description="E-mail cadastrado",
+        examples=["gabriel@exemplo.com"],
+    )
+    senha: str = Field(
+        description="Senha do usuário",
+        examples=["senhaSegura123"],
+    )
+
+
+class TokenResponse(BaseModel):
+    """Token de acesso retornado após login bem-sucedido."""
+
+    access_token: str = Field(description="Token JWT de acesso")
+    token_type: str = Field(default="bearer", description="Tipo do token")

@@ -43,6 +43,25 @@ API_DEBUG: bool = os.getenv("API_DEBUG", "true").lower() == "true"
 
 
 # ------------------------------------------------------------------------------
+# Configuração do JWT (Autenticação)
+# ------------------------------------------------------------------------------
+
+JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "chave_insegura_trocar")
+JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRACAO_MINUTOS: int = int(os.getenv("JWT_EXPIRACAO_MINUTOS", "60"))
+
+
+# ------------------------------------------------------------------------------
+# Configuração do Banco de Dados (MySQL)
+# ------------------------------------------------------------------------------
+
+DATABASE_URL: str = os.getenv(
+    "DATABASE_URL",
+    "mysql+pymysql://root:senha@localhost:3306/checkai",
+)
+
+
+# ------------------------------------------------------------------------------
 # Metadados da API (exibidos no Swagger UI)
 # ------------------------------------------------------------------------------
 
