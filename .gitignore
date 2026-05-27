@@ -30,3 +30,17 @@ venv/
 
 # arquivos temporários de editor
 *.swp
+
+# Frontend / Next.js
+web/.next/
+web/node_modules/
+web/out/
+web/dist/
+web/.turbo/
+web/.vercel/
+
+# Dados brutos de datasets acadêmicos
+dados/pipeline_datasets_academicos/raw/**
+!dados/pipeline_datasets_academicos/raw/
+!dados/pipeline_datasets_academicos/raw/**/
+!dados/pipeline_datasets_academicos/raw/**/.gitkeep
