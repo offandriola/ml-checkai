@@ -36,8 +36,9 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from api.config import API_TITULO, API_DESCRICAO, API_VERSAO, API_DEBUG
-from api.routes import health, coleta, dados, classificador, auth
+from api.routes import health, coleta, dados, classificador, auth, verificacao
 from api.services.classificador import carregar_modelo
+
 
 
 # ==============================================================================
@@ -182,7 +183,19 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Pragma"] = "no-cache"
 
     # Política de segurança de conteúdo (CSP)
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    # As rotas de documentação (Swagger/ReDoc) carregam assets de um CDN,
+    # então recebem uma CSP mais permissiva. As demais rotas permanecem restritas.
+    docs_paths = ("/docs", "/redoc", "/openapi.json")
+    if request.url.path in docs_paths:
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: https://fastapi.tiangolo.com; "
+            "worker-src 'self' blob:"
+        )
+    else:
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
 
     # Controla informações enviadas no header Referer
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -298,6 +311,7 @@ app.include_router(coleta.router)
 app.include_router(dados.router)
 app.include_router(classificador.router)
 app.include_router(auth.router)
+app.include_router(verificacao.router)
 
 
 # ==============================================================================

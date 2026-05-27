@@ -22,6 +22,8 @@ from api.services.auth import (
     autenticar_usuario,
 )
 from api.utils.security import criar_token_acesso
+from api.utils.dependencies import get_usuario_atual
+from api.db_models.user import User
 
 
 router = APIRouter(
@@ -87,3 +89,22 @@ async def login(
 
     token = criar_token_acesso({"sub": str(usuario.id), "email": usuario.email})
     return TokenResponse(access_token=token)
+
+
+@router.get(
+    "/me",
+    response_model=UsuarioResponse,
+    summary="Dados do usuário autenticado",
+    description="Retorna os dados do usuário dono do token JWT enviado.",
+)
+async def usuario_logado(
+    usuario_atual: User = Depends(get_usuario_atual),
+) -> UsuarioResponse:
+    """
+    Retorna o perfil do usuário autenticado.
+
+    Esta rota é protegida: requer um token JWT válido no header
+    Authorization. Serve de base para o front identificar quem está logado
+    (ex.: exibir o nome no dashboard).
+    """
+    return usuario_atual

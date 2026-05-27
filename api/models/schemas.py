@@ -12,6 +12,7 @@
 # ==============================================================================
 
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 # ==============================================================================
@@ -314,3 +315,47 @@ class TokenResponse(BaseModel):
 
     access_token: str = Field(description="Token JWT de acesso")
     token_type: str = Field(default="bearer", description="Tipo do token")
+
+
+# ==============================================================================
+# Verificações / Histórico
+# ==============================================================================
+
+
+class VerificacaoCreateRequest(BaseModel):
+    """Entrada para criar uma verificação."""
+
+    texto: str = Field(
+        min_length=5,
+        max_length=10000,
+        description="Texto a ser verificado",
+        examples=["Governo anuncia nova isenção de impostos"],
+    )
+    tipo: str = Field(
+        default="texto",
+        description="Tipo de conteúdo verificado (texto, imagem ou link)",
+        examples=["texto"],
+    )
+
+
+class VerificacaoResponse(BaseModel):
+    """Representa uma verificação no histórico."""
+
+    id: int
+    texto_verificado: str
+    tipo: str
+    resultado: str = Field(description="REAL, FALSO ou INCONCLUSIVO")
+    confianca: float
+    criado_em: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ResumoResponse(BaseModel):
+    """Estatísticas agregadas do usuário (bloco 'Seu resumo' do dashboard)."""
+
+    total_verificacoes: int = Field(description="Total de verificações feitas")
+    total_reais: int = Field(description="Quantas foram classificadas como REAL")
+    total_falsas: int = Field(description="Quantas foram classificadas como FALSO")
+    total_inconclusivas: int = Field(description="Quantas foram INCONCLUSIVO")
+    percentual_reais: float = Field(description="Percentual de verificações reais")

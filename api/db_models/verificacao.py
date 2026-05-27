@@ -1,0 +1,33 @@
+# ==============================================================================
+# CheckAI API — Modelo: Verificação
+# ==============================================================================
+# Cada registro representa uma verificação (checagem) feita por um usuário.
+# Liga-se ao usuário dono via chave estrangeira (usuario_id).
+# ==============================================================================
+
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey
+from sqlalchemy.orm import relationship
+
+from api.database import Base
+
+
+class Verificacao(Base):
+    __tablename__ = "verificacoes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    texto_verificado = Column(Text, nullable=False)
+    tipo = Column(String(20), default="texto")  # texto | imagem | link
+    resultado = Column(String(20), nullable=False)  # REAL | FALSO | INCONCLUSIVO
+    confianca = Column(Float, default=0.0)
+    modelo_ativo = Column(String(5), default="nao")  # registra se foi modelo real ou mock
+    criado_em = Column(DateTime, default=datetime.utcnow)
+
+    # Relação inversa: acessar o usuário dono da verificação
+    usuario = relationship("User", back_populates="verificacoes")
