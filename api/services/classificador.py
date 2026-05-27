@@ -122,6 +122,9 @@ def classificar_texto(texto: str) -> dict:
         # ------------------------------------------------------------------
         # Classificação REAL com o modelo treinado
         # ------------------------------------------------------------------
+        # Mapeamento dos labels numéricos do modelo → nomes legíveis
+        _LABEL_MAP = {0: "FALSO", 1: "VERDADEIRO", "0": "FALSO", "1": "VERDADEIRO"}
+
         try:
             # O modelo espera receber uma lista de textos
             predicao = _modelo.predict([texto])
@@ -133,7 +136,9 @@ def classificar_texto(texto: str) -> dict:
                 # Modelos como LinearSVC não têm predict_proba
                 confianca = 0.0
 
-            classificacao = str(predicao[0])
+            # Converte label numérico (0/1) para texto (FALSO/VERDADEIRO)
+            label_raw = predicao[0]
+            classificacao = _LABEL_MAP.get(label_raw, str(label_raw))
 
             return {
                 "texto_original": texto,
