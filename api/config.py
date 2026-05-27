@@ -124,9 +124,10 @@ PIPELINES_RAW: dict[str, Path] = {
 # ------------------------------------------------------------------------------
 # Diretório do Modelo de ML
 # ------------------------------------------------------------------------------
-# Quando o modelo for treinado, salve o arquivo .pkl aqui.
-# O serviço de classificação tentará carregá-lo automaticamente.
+# O modelo treinado (.joblib) fica na pasta modelos/ na raiz do projeto.
+# O serviço de classificação carrega automaticamente no startup.
+# Modelo atual: baseline v2 balanced (acurácia 90.2%, ROC-AUC 97.1%)
 # ------------------------------------------------------------------------------
 
-DIR_MODELO = DIRETORIO_RAIZ / "api" / "models"
-CAMINHO_MODELO = DIR_MODELO / "modelo_checkai.pkl"
+DIR_MODELO = DIRETORIO_RAIZ / "modelos"
+CAMINHO_MODELO = DIR_MODELO / "baseline_tfidf_logreg_v2_balanced.joblib"
