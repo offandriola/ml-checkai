@@ -6,24 +6,28 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
 from api.database import get_db
-from api.models.schemas import CadastroRequest, UsuarioResponse
-from api.services.auth import buscar_usuario_por_email, criar_usuario
 from api.models.schemas import (
     CadastroRequest,
     UsuarioResponse,
     LoginRequest,
     TokenResponse,
+    AtualizarPerfilRequest,
+    TrocarSenhaRequest,
+    MensagemResponse,
 )
 from api.services.auth import (
     buscar_usuario_por_email,
     criar_usuario,
     autenticar_usuario,
+    atualizar_perfil,
+    trocar_senha,
+    excluir_conta,
 )
 from api.utils.security import criar_token_acesso
 from api.utils.dependencies import get_usuario_atual
 from api.db_models.user import User
+from api.services.verificacao import limpar_historico
 
 
 router = APIRouter(
@@ -108,3 +112,86 @@ async def usuario_logado(
     (ex.: exibir o nome no dashboard).
     """
     return usuario_atual
+
+
+@router.patch(
+    "/me",
+    response_model=UsuarioResponse,
+    summary="Atualizar perfil do usuário",
+    description="Atualiza nome e/ou e-mail do usuário autenticado.",
+)
+async def atualizar_meu_perfil(
+    dados: AtualizarPerfilRequest,
+    usuario_atual: User = Depends(get_usuario_atual),
+    db: Session = Depends(get_db),
+) -> UsuarioResponse:
+    """Atualiza o perfil do usuário autenticado."""
+    try:
+        return atualizar_perfil(
+            db, usuario_atual, nome=dados.nome, email=dados.email
+        )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(erro),
+        )
+
+
+@router.post(
+    "/me/senha",
+    response_model=MensagemResponse,
+    summary="Trocar senha",
+    description="Altera a senha do usuário autenticado após validar a senha atual.",
+)
+async def trocar_minha_senha(
+    dados: TrocarSenhaRequest,
+    usuario_atual: User = Depends(get_usuario_atual),
+    db: Session = Depends(get_db),
+) -> MensagemResponse:
+    """Troca a senha do usuário autenticado."""
+    try:
+        trocar_senha(db, usuario_atual, dados.senha_atual, dados.nova_senha)
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(erro),
+        )
+    return MensagemResponse(mensagem="Senha alterada com sucesso.")
+
+
+@router.delete(
+    "/me/historico",
+    response_model=MensagemResponse,
+    summary="Limpar histórico de verificações",
+    description=(
+        "Apaga TODAS as verificações do usuário. Esta ação é IRREVERSÍVEL. "
+        "Não remove a conta, apenas o histórico."
+    ),
+)
+async def limpar_meu_historico(
+    usuario_atual: User = Depends(get_usuario_atual),
+    db: Session = Depends(get_db),
+) -> MensagemResponse:
+    """Apaga todo o histórico do usuário autenticado."""
+    total = limpar_historico(db, usuario_atual.id)
+    return MensagemResponse(
+        mensagem=f"Histórico limpo. {total} verificação(ões) removida(s)."
+    )
+
+
+@router.delete(
+    "/me",
+    response_model=MensagemResponse,
+    summary="Excluir conta",
+    description=(
+        "Exclui permanentemente o usuário e TODO o histórico associado. "
+        "Esta ação é IRREVERSÍVEL."
+    ),
+)
+async def excluir_minha_conta(
+    usuario_atual: User = Depends(get_usuario_atual),
+    db: Session = Depends(get_db),
+) -> MensagemResponse:
+    """Exclui a conta do usuário autenticado e tudo associado a ela."""
+    excluir_conta(db, usuario_atual)
+    return MensagemResponse(mensagem="Conta excluída com sucesso.")

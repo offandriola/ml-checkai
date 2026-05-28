@@ -7,7 +7,7 @@
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from api.database import get_db
 from api.db_models.user import User
 from api.models.schemas import (
@@ -21,6 +21,18 @@ from api.services.verificacao import (
     calcular_resumo,
 )
 from api.utils.dependencies import get_usuario_atual
+from api.models.schemas import (
+    VerificacaoCreateRequest,
+    VerificacaoResponse,
+    ResumoResponse,
+    ListagemVerificacoesResponse,
+)
+from api.services.verificacao import (
+    criar_verificacao,
+    listar_verificacoes,
+    calcular_resumo,
+    buscar_verificacao_por_id,
+)
 
 
 router = APIRouter(
@@ -47,16 +59,46 @@ async def criar(
 
 @router.get(
     "",
-    response_model=list[VerificacaoResponse],
+    response_model=ListagemVerificacoesResponse,
     summary="Listar histórico de verificações",
-    description="Retorna as verificações do usuário, da mais recente à mais antiga.",
+    description=(
+        "Retorna as verificações do usuário com filtros e paginação. "
+        "Use 'resultado' para filtrar por categoria (REAL, FALSO, INCONCLUSIVO) "
+        "e 'busca' para procurar no texto. Os itens vêm da mais recente "
+        "para a mais antiga."
+    ),
 )
 async def listar(
+    resultado: str | None = Query(
+        default=None,
+        description="Filtrar por resultado: REAL, FALSO ou INCONCLUSIVO",
+        pattern="^(REAL|FALSO|INCONCLUSIVO)$",
+    ),
+    busca: str | None = Query(
+        default=None,
+        max_length=200,
+        description="Buscar substring no conteúdo verificado",
+    ),
+    pagina: int = Query(default=1, ge=1, description="Número da página"),
+    por_pagina: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+        description="Itens por página (máx. 100)",
+    ),
     usuario_atual: User = Depends(get_usuario_atual),
     db: Session = Depends(get_db),
-) -> list[VerificacaoResponse]:
-    """Lista o histórico de verificações do usuário autenticado."""
-    return listar_verificacoes(db, usuario_atual.id)
+) -> ListagemVerificacoesResponse:
+    """Lista o histórico do usuário autenticado, com filtros e paginação."""
+    resultado_paginado = listar_verificacoes(
+        db,
+        usuario_atual.id,
+        resultado=resultado,
+        busca=busca,
+        pagina=pagina,
+        por_pagina=por_pagina,
+    )
+    return ListagemVerificacoesResponse(**resultado_paginado)
 
 
 @router.get(
@@ -71,3 +113,33 @@ async def resumo(
 ) -> ResumoResponse:
     """Calcula o resumo de verificações do usuário autenticado."""
     return ResumoResponse(**calcular_resumo(db, usuario_atual.id))
+
+
+@router.get(
+    "/{verificacao_id}",
+    response_model=VerificacaoResponse,
+    summary="Detalhe de uma verificação",
+    description=(
+        "Retorna o detalhe de uma verificação específica. "
+        "Só o dono da verificação pode acessá-la."
+    ),
+)
+async def detalhe(
+    verificacao_id: int,
+    usuario_atual: User = Depends(get_usuario_atual),
+    db: Session = Depends(get_db),
+) -> VerificacaoResponse:
+    """
+    Retorna uma verificação pelo id, desde que pertença ao usuário logado.
+
+    SEGURANÇA (OWASP A01): retorna 404 (e não 403) caso a verificação
+    não pertença ao usuário — assim evita revelar que o id existe para
+    outra pessoa.
+    """
+    verificacao = buscar_verificacao_por_id(db, usuario_atual.id, verificacao_id)
+    if verificacao is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Verificação não encontrada.",
+        )
+    return verificacao

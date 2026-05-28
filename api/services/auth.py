@@ -46,3 +46,56 @@ def autenticar_usuario(db: Session, email: str, senha: str) -> User | None:
     if not verificar_senha(senha, usuario.senha_hash):
         return None
     return usuario
+
+
+def atualizar_perfil(
+    db: Session,
+    usuario: User,
+    nome: str | None = None,
+    email: str | None = None,
+) -> User:
+    """
+    Atualiza os campos do perfil que foram informados.
+
+    Verifica unicidade do novo e-mail antes de aplicar.
+    Levanta ValueError caso o e-mail já esteja em uso por outro usuário.
+    """
+    if nome is not None:
+        usuario.nome = nome
+
+    if email is not None and email != usuario.email:
+        em_uso = buscar_usuario_por_email(db, email)
+        if em_uso and em_uso.id != usuario.id:
+            raise ValueError("E-mail já cadastrado por outro usuário.")
+        usuario.email = email
+
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+def trocar_senha(
+    db: Session, usuario: User, senha_atual: str, nova_senha: str
+) -> None:
+    """
+    Troca a senha do usuário após validar a senha atual.
+
+    SEGURANÇA: pedir a senha atual evita que um token roubado consiga
+    trocar a senha sem o conhecimento do dono (defesa em profundidade).
+
+    Levanta ValueError se a senha atual estiver incorreta.
+    """
+    if not verificar_senha(senha_atual, usuario.senha_hash):
+        raise ValueError("Senha atual incorreta.")
+
+    usuario.senha_hash = gerar_hash_senha(nova_senha)
+    db.commit()
+
+
+def excluir_conta(db: Session, usuario: User) -> None:
+    """
+    Remove o usuário do banco. O cascade='all, delete-orphan' no model
+    apaga automaticamente todas as verificações associadas.
+    """
+    db.delete(usuario)
+    db.commit()

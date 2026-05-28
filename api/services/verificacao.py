@@ -9,7 +9,7 @@
 # ==============================================================================
 
 from sqlalchemy.orm import Session
-
+from sqlalchemy import or_
 from api.db_models.verificacao import Verificacao
 from api.services.classificador import classificar_texto
 
@@ -57,15 +57,76 @@ def criar_verificacao(
 
 
 def listar_verificacoes(
-    db: Session, usuario_id: int, limite: int = 50
-) -> list[Verificacao]:
-    """Retorna o histórico do usuário, da mais recente para a mais antiga."""
+    db: Session,
+    usuario_id: int,
+    *,
+    resultado: str | None = None,
+    busca: str | None = None,
+    pagina: int = 1,
+    por_pagina: int = 10,
+) -> dict:
+    """
+    Lista o histórico do usuário com filtros e paginação.
+
+    Filtros aceitos:
+        - resultado: 'REAL', 'FALSO' ou 'INCONCLUSIVO' (None = todos)
+        - busca: substring buscada no texto_verificado (case-insensitive)
+
+    Retorna um dicionário no formato do envelope paginado.
+    """
+    # Query base: só verificações deste usuário
+    query = db.query(Verificacao).filter(Verificacao.usuario_id == usuario_id)
+
+    # Filtro por resultado (Todas/Verdadeiras/Falsas/Inconclusivas da tela)
+    if resultado:
+        query = query.filter(Verificacao.resultado == resultado.upper())
+
+    # Busca por palavra-chave no conteúdo verificado
+    if busca:
+        termo = f"%{busca}%"
+        query = query.filter(Verificacao.texto_verificado.ilike(termo))
+
+    # Total ANTES da paginação (para o rodapé "1-10 de 115 resultados")
+    total = query.count()
+
+    # Ordena da mais recente para a mais antiga e aplica a paginação
+    offset = (pagina - 1) * por_pagina
+    itens = (
+        query.order_by(Verificacao.criado_em.desc())
+        .offset(offset)
+        .limit(por_pagina)
+        .all()
+    )
+
+    # Calcula o total de páginas (arredondando para cima)
+    total_paginas = (total + por_pagina - 1) // por_pagina if total > 0 else 0
+
+    return {
+        "total": total,
+        "pagina": pagina,
+        "por_pagina": por_pagina,
+        "total_paginas": total_paginas,
+        "itens": itens,
+    }
+
+
+def buscar_verificacao_por_id(
+    db: Session, usuario_id: int, verificacao_id: int
+) -> Verificacao | None:
+    """
+    Busca uma verificação específica, garantindo que pertença ao usuário.
+
+    SEGURANÇA (OWASP A01 - Broken Access Control):
+        O filtro por usuario_id evita que um usuário acesse verificações
+        de outro só trocando o id na URL (IDOR).
+    """
     return (
         db.query(Verificacao)
-        .filter(Verificacao.usuario_id == usuario_id)
-        .order_by(Verificacao.criado_em.desc())
-        .limit(limite)
-        .all()
+        .filter(
+            Verificacao.id == verificacao_id,
+            Verificacao.usuario_id == usuario_id,
+        )
+        .first()
     )
 
 
@@ -90,3 +151,18 @@ def calcular_resumo(db: Session, usuario_id: int) -> dict:
         "total_inconclusivas": inconclusivas,
         "percentual_reais": percentual,
     }
+
+
+def limpar_historico(db: Session, usuario_id: int) -> int:
+    """
+    Apaga todas as verificações do usuário. Retorna o total apagado.
+
+    Usado pelo botão 'Limpar histórico' da Zona de perigo das configurações.
+    """
+    total = (
+        db.query(Verificacao)
+        .filter(Verificacao.usuario_id == usuario_id)
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return total
