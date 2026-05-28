@@ -4,7 +4,7 @@
 
 O **CheckAI** é um projeto acadêmico de TCC voltado à construção de uma base de dados, de um modelo de classificação supervisionada e de uma **API RESTful** para análise de conteúdos políticos em português. O objetivo é apoiar a identificação inicial de afirmações, manchetes ou notícias curtas com possível caráter **verdadeiro** ou **falso**, a partir de dados coletados de fontes públicas, rastreáveis e verificáveis.
 
-O projeto já concluiu as etapas de coleta, curadoria e montagem do primeiro dataset de treino, e avançou na construção do backend: a API conta com autenticação de usuários (cadastro, login e proteção de rotas via JWT), persistência em banco de dados relacional e histórico de verificações por usuário. As próximas etapas envolvem o treinamento e avaliação do modelo supervisionado e sua integração ao endpoint de classificação.
+O projeto já concluiu as etapas de coleta, curadoria e montagem do primeiro dataset de treino, e avançou na construção do backend: a API conta com autenticação de usuários, proteção de rotas via JWT, persistência em banco de dados relacional, histórico de verificações por usuário (com busca, filtros e paginação) e gerenciamento completo da conta (perfil, senha, limpeza de histórico e exclusão). As próximas etapas envolvem o treinamento e avaliação do modelo supervisionado e sua integração ao endpoint de classificação.
 
 ---
 
@@ -37,7 +37,10 @@ Além disso, o projeto mantém a possibilidade de evoluir para uma abordagem em 
 | Backend — Cadastro e Login (JWT) | ✅ Implementados |
 | Backend — Proteção de rotas e perfil (`/me`) | ✅ Implementados |
 | Backend — Histórico de verificações | ✅ Implementado |
-| Treinamento do modelo supervisionado | 🔜 Próxima etapa |
+| Treinamento do modelo supervisionado (V2) | ✅ Concluída e Integrada |
+| Backend — Busca, filtros e paginação do histórico | ✅ Implementados |
+| Backend — Detalhe de verificação | ✅ Implementado |
+| Backend — Configurações da conta (perfil, senha, limpar histórico, excluir conta) | ✅ Implementadas |
 
 ### Pipelines de dados
 
@@ -47,7 +50,7 @@ Além disso, o projeto mantém a possibilidade de evoluir para uma abordagem em 
 | `pipeline_verdadeiro_fontes_oficiais` | Dados oficiais de órgãos públicos | ✅ Concluída | ✅ Concluída |
 | `pipeline_noticias_reais` | Notícias reais de portais jornalísticos | ✅ Concluída | ✅ Concluída |
 
-O primeiro dataset de treino (`dataset_final_treino_v1.csv`) foi montado e está disponível em `dados/dataset_unificado/final/`. A próxima etapa é o treinamento e avaliação do modelo baseline.
+O primeiro dataset de treino (`dataset_final_treino_v1.csv`) e os datasets estendidos da V2 e V3 já foram montados, estando disponíveis na pasta `dados/`. A etapa de treinamento, avaliação e integração do modelo baseline (V2) já foi concluída e o modelo encontra-se em uso ativo pela API.
 
 ---
 
@@ -69,7 +72,7 @@ ml-checkai/
 │   │   └── schemas.py                # Validação de entrada/saída da API
 │   │
 │   ├── routes/                       # Endpoints (camada HTTP)
-│   │   ├── auth.py                   # Cadastro, login, perfil (/me)
+│   │   ├── auth.py                   # Cadastro, login, perfil, configurações
 │   │   ├── verificacao.py            # Histórico de verificações do usuário
 │   │   ├── classificador.py
 │   │   ├── coleta.py
@@ -77,8 +80,8 @@ ml-checkai/
 │   │   └── health.py
 │   │
 │   ├── services/                     # Lógica de negócio
-│   │   ├── auth.py                   # Cadastro, busca e autenticação de usuários
-│   │   ├── verificacao.py            # Criação, listagem e resumo de verificações
+│   │   ├── auth.py                   # Cadastro, autenticação, perfil, senha, conta
+│   │   ├── verificacao.py            # Criação, listagem (com filtros), resumo, limpeza
 │   │   ├── classificador.py
 │   │   ├── fontes_oficiais.py
 │   │   ├── google_factcheck.py
@@ -372,7 +375,11 @@ Esse padrão evita sobrescrever coletas antigas e melhora a rastreabilidade do d
 
 # Backend — API CheckAI
 
-A partir do dataset, o projeto expõe uma **API RESTful** construída em **FastAPI**, responsável por servir os dados, executar pipelines, classificar textos e gerenciar usuários e seu histórico de verificações. A API segue uma arquitetura em camadas (rotas → serviços → utilitários) e incorpora boas práticas de segurança baseadas no OWASP Top 10.
+A partir do dataset, o projeto expõe uma **API RESTful** construída em **FastAPI**, responsável por servir os dados, executar pipelines, classificar textos e gerenciar usuários, seu histórico de verificações e sua conta. A API segue uma arquitetura em camadas (rotas → serviços → utilitários) e incorpora boas práticas de segurança baseadas no OWASP Top 10.
+
+## 🧠 Integração com Machine Learning (V2)
+
+A API agora carrega ativamente o modelo de Machine Learning V2 (`baseline_tfidf_logreg_v2_balanced.joblib`) já no startup. O modelo opera processando strings de entrada em classificações legíveis (`VERDADEIRO` e `FALSO`) através da rota de classificação. Quando a confiança preditiva cai abaixo do limiar (padrão `0.60`), a API mapeia o registro para o histórico do usuário como `INCONCLUSIVO`. Detalhes e métricas (ex.: acurácia de ~90.2%) estão registrados nos documentos de viés em `docs/relatorio_v2_modelo_ml.md`.
 
 ## Arquitetura em Camadas
 
@@ -438,7 +445,7 @@ CREATE DATABASE checkai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 | `modelo_ativo` | VARCHAR(5) | Indica se a classificação usou o modelo real ou o modo mock |
 | `criado_em` | DATETIME | Data da verificação |
 
-As tabelas têm um relacionamento **um-para-muitos**: um usuário possui várias verificações, e cada verificação pertence a um único usuário.
+As tabelas têm um relacionamento **um-para-muitos**: um usuário possui várias verificações, e cada verificação pertence a um único usuário. O relacionamento usa `cascade="all, delete-orphan"` — assim, ao excluir um usuário, todas as suas verificações são apagadas automaticamente, mantendo a integridade referencial.
 
 ### Criação das tabelas
 
@@ -464,6 +471,8 @@ Decisões de segurança adotadas:
 - **Token com expiração** — o claim `exp` limita a janela de uso de cada token (OWASP A07).
 - **Mensagem genérica no login** — e-mail inexistente e senha incorreta retornam a mesma mensagem, evitando *user enumeration*.
 - **Proteção de rotas por dependência** — controle de acesso centralizado e consistente (OWASP A01).
+- **Verificação de propriedade nos acessos por id** — endpoints que recebem um id (ex.: detalhe de verificação) sempre cruzam com o `usuario_id`, prevenindo ataques IDOR (Insecure Direct Object Reference). Quando o recurso não pertence ao usuário, a API responde com `404`, evitando expor a existência do id (OWASP A01).
+- **Troca de senha exige a senha atual** — defesa em profundidade contra uso indevido de tokens.
 - **Chave secreta fora do versionamento** — a `JWT_SECRET_KEY` reside apenas no `.env`.
 
 ## Histórico de Verificações
@@ -472,23 +481,47 @@ Cada verificação realizada por um usuário autenticado é persistida e associa
 
 O resultado é derivado da classificação do texto com uma regra de confiança: quando a confiança da predição fica abaixo de um limiar definido (padrão `0.60`), o resultado é marcado como **INCONCLUSIVO**, em vez de afirmar `REAL` ou `FALSO`. Isso torna o sistema mais transparente quanto à própria incerteza.
 
+A listagem do histórico suporta **busca**, **filtros** e **paginação**:
+
+- `resultado` — filtra por categoria (`REAL`, `FALSO`, `INCONCLUSIVO`)
+- `busca` — procura uma substring no conteúdo verificado (case-insensitive)
+- `pagina` / `por_pagina` — controlam a paginação (padrão: página 1, 10 itens por página; máximo 100 por página)
+
+A resposta usa um **envelope de paginação** que devolve, além dos itens, o `total`, a `pagina`, o `por_pagina` e o `total_paginas` — assim o front pode exibir indicadores como "1–10 de 115 resultados" e construir a barra de navegação entre páginas.
+
+## Gerenciamento da Conta
+
+O usuário autenticado pode gerenciar seus próprios dados, suportando o fluxo de Configurações da aplicação:
+
+- **Atualizar perfil** (`PATCH /auth/me`) — altera nome e/ou e-mail, com checagem de unicidade do novo e-mail.
+- **Trocar senha** (`POST /auth/me/senha`) — exige a senha atual para autorizar a troca.
+- **Limpar histórico** (`DELETE /auth/me/historico`) — remove todas as verificações do usuário, mas mantém a conta.
+- **Excluir conta** (`DELETE /auth/me`) — apaga o usuário e, por cascata, todas as suas verificações.
+
+Todas as operações são protegidas por JWT e atuam exclusivamente sobre os dados do usuário autenticado.
+
 ## Endpoints da API
 
-### Autenticação e perfil
+### Autenticação, perfil e conta
 
 | Método | Rota | Protegida | Descrição |
 |---|---|---|---|
 | `POST` | `/api/v1/auth/cadastro` | Não | Cria um novo usuário (senha protegida por hash) |
 | `POST` | `/api/v1/auth/login` | Não | Valida credenciais e retorna um token JWT |
 | `GET` | `/api/v1/auth/me` | Sim | Retorna os dados do usuário autenticado |
+| `PATCH` | `/api/v1/auth/me` | Sim | Atualiza nome e/ou e-mail do usuário |
+| `POST` | `/api/v1/auth/me/senha` | Sim | Troca a senha (exige a senha atual) |
+| `DELETE` | `/api/v1/auth/me/historico` | Sim | Apaga todas as verificações do usuário |
+| `DELETE` | `/api/v1/auth/me` | Sim | Exclui a conta e tudo associado |
 
 ### Verificações (histórico)
 
 | Método | Rota | Protegida | Descrição |
 |---|---|---|---|
 | `POST` | `/api/v1/verificacoes` | Sim | Classifica um texto e salva no histórico do usuário |
-| `GET` | `/api/v1/verificacoes` | Sim | Lista o histórico do usuário (mais recentes primeiro) |
-| `GET` | `/api/v1/verificacoes/resumo` | Sim | Estatísticas agregadas do usuário (totais e percentuais) |
+| `GET` | `/api/v1/verificacoes` | Sim | Lista o histórico com busca, filtros e paginação |
+| `GET` | `/api/v1/verificacoes/{id}` | Sim | Detalhe de uma verificação específica do usuário |
+| `GET` | `/api/v1/verificacoes/resumo` | Sim | Estatísticas agregadas do usuário |
 
 ### Demais endpoints
 
@@ -515,6 +548,21 @@ Exemplo de corpo para criar uma verificação (rota protegida):
 {
   "texto": "Governo anuncia nova isenção de impostos",
   "tipo": "texto"
+}
+```
+
+Exemplo de listagem do histórico com filtros e paginação:
+
+```text
+GET /api/v1/verificacoes?resultado=FALSO&busca=imposto&pagina=1&por_pagina=10
+```
+
+Exemplo de corpo para troca de senha:
+
+```json
+{
+  "senha_atual": "senhaAntiga",
+  "nova_senha": "senhaNovaSegura123"
 }
 ```
 
@@ -775,15 +823,10 @@ Uso do modelo para classificação via API
 
 ## Próximos Passos
 
-- Treinar o modelo baseline com TF-IDF + Regressão Logística
-- Avaliar o baseline com acurácia, precisão, recall, F1-score e matriz de confusão
-- Integrar o modelo treinado ao endpoint `/api/v1/classificar` e ao fluxo de verificações
 - Implementar planos de usuário (Free/Pro) e limites de uso por plano
 - Implementar recuperação de senha
-- Expandir a base positiva com mais notícias reais curtas de fontes diversas
-- Buscar mais claims verificados como verdadeiros em fontes de fact-checking (aumentar os 26 atuais)
-- Montar o `dataset_final_treino_v2` com maior volume e melhor equilíbrio de distribuição de tamanhos
-- Investigar uso das Fontes Oficiais como base de evidência/referência em versões futuras
+- Aprimorar o modelo com novos algoritmos (além da Regressão Logística)
+- Incorporar bases de fontes oficiais como contexto factual para verificações mais aprofundadas
 
 ---
 
