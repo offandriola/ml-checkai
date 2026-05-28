@@ -37,7 +37,7 @@ Além disso, o projeto mantém a possibilidade de evoluir para uma abordagem em 
 | Backend — Cadastro e Login (JWT) | ✅ Implementados |
 | Backend — Proteção de rotas e perfil (`/me`) | ✅ Implementados |
 | Backend — Histórico de verificações | ✅ Implementado |
-| Treinamento do modelo supervisionado | 🔜 Próxima etapa |
+| Treinamento do modelo supervisionado (V2) | ✅ Concluída e Integrada |
 
 ### Pipelines de dados
 
@@ -47,7 +47,7 @@ Além disso, o projeto mantém a possibilidade de evoluir para uma abordagem em 
 | `pipeline_verdadeiro_fontes_oficiais` | Dados oficiais de órgãos públicos | ✅ Concluída | ✅ Concluída |
 | `pipeline_noticias_reais` | Notícias reais de portais jornalísticos | ✅ Concluída | ✅ Concluída |
 
-O primeiro dataset de treino (`dataset_final_treino_v1.csv`) foi montado e está disponível em `dados/dataset_unificado/final/`. A próxima etapa é o treinamento e avaliação do modelo baseline.
+O primeiro dataset de treino (`dataset_final_treino_v1.csv`) e os datasets estendidos da V2 e V3 já foram montados, estando disponíveis na pasta `dados/`. A etapa de treinamento, avaliação e integração do modelo baseline (V2) já foi concluída e o modelo encontra-se em uso ativo pela API.
 
 ---
 
@@ -373,6 +373,10 @@ Esse padrão evita sobrescrever coletas antigas e melhora a rastreabilidade do d
 # Backend — API CheckAI
 
 A partir do dataset, o projeto expõe uma **API RESTful** construída em **FastAPI**, responsável por servir os dados, executar pipelines, classificar textos e gerenciar usuários e seu histórico de verificações. A API segue uma arquitetura em camadas (rotas → serviços → utilitários) e incorpora boas práticas de segurança baseadas no OWASP Top 10.
+
+## 🧠 Integração com Machine Learning (V2)
+
+A API agora carrega ativamente o modelo de Machine Learning V2 (`baseline_tfidf_logreg_v2_balanced.joblib`) já no startup. O modelo opera processando strings de entrada em classificações legíveis (`VERDADEIRO` e `FALSO`) através da rota de classificação. Quando a confiança preditiva cai abaixo do limiar (padrão `0.60`), a API mapeia o registro para o histórico do usuário como `INCONCLUSIVO`. Detalhes e métricas (ex.: acurácia de ~90.2%) estão registrados nos documentos de viés em `docs/relatorio_v2_modelo_ml.md`.
 
 ## Arquitetura em Camadas
 
@@ -775,15 +779,10 @@ Uso do modelo para classificação via API
 
 ## Próximos Passos
 
-- Treinar o modelo baseline com TF-IDF + Regressão Logística
-- Avaliar o baseline com acurácia, precisão, recall, F1-score e matriz de confusão
-- Integrar o modelo treinado ao endpoint `/api/v1/classificar` e ao fluxo de verificações
 - Implementar planos de usuário (Free/Pro) e limites de uso por plano
 - Implementar recuperação de senha
-- Expandir a base positiva com mais notícias reais curtas de fontes diversas
-- Buscar mais claims verificados como verdadeiros em fontes de fact-checking (aumentar os 26 atuais)
-- Montar o `dataset_final_treino_v2` com maior volume e melhor equilíbrio de distribuição de tamanhos
-- Investigar uso das Fontes Oficiais como base de evidência/referência em versões futuras
+- Aprimorar o modelo com novos algoritmos (além da Regressão Logística)
+- Incorporar bases de fontes oficiais como contexto factual para verificações mais aprofundadas
 
 ---
 
