@@ -12,6 +12,7 @@
 # ==============================================================================
 
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 # ==============================================================================
@@ -255,3 +256,151 @@ class StatusModeloResponse(BaseModel):
     mensagem: str = Field(
         description="Descrição do status atual do modelo",
     )
+
+
+# ==============================================================================
+# Autenticação / Usuários
+# ==============================================================================
+
+from pydantic import EmailStr
+
+
+class CadastroRequest(BaseModel):
+    """Dados de entrada para cadastro de um novo usuário."""
+
+    nome: str = Field(
+        min_length=2,
+        max_length=120,
+        description="Nome completo do usuário",
+        examples=["Gabriel Andriola"],
+    )
+    email: EmailStr = Field(
+        description="E-mail do usuário (usado para login)",
+        examples=["gabriel@exemplo.com"],
+    )
+    senha: str = Field(
+        min_length=8,
+        max_length=72,  # bcrypt trunca em 72 bytes; validamos aqui pra evitar surpresa
+        description="Senha do usuário (mínimo 8 caracteres)",
+        examples=["senhaSegura123"],
+    )
+
+
+class UsuarioResponse(BaseModel):
+    """Dados públicos de um usuário (NUNCA inclui a senha/hash)."""
+
+    id: int = Field(description="Identificador único do usuário")
+    nome: str = Field(description="Nome do usuário")
+    email: EmailStr = Field(description="E-mail do usuário")
+
+    # Permite que o Pydantic leia direto de um objeto SQLAlchemy
+    model_config = {"from_attributes": True}
+
+
+class LoginRequest(BaseModel):
+    """Dados de entrada para login."""
+
+    email: EmailStr = Field(
+        description="E-mail cadastrado",
+        examples=["gabriel@exemplo.com"],
+    )
+    senha: str = Field(
+        description="Senha do usuário",
+        examples=["senhaSegura123"],
+    )
+
+
+class TokenResponse(BaseModel):
+    """Token de acesso retornado após login bem-sucedido."""
+
+    access_token: str = Field(description="Token JWT de acesso")
+    token_type: str = Field(default="bearer", description="Tipo do token")
+
+
+# ==============================================================================
+# Verificações / Histórico
+# ==============================================================================
+
+
+class VerificacaoCreateRequest(BaseModel):
+    """Entrada para criar uma verificação."""
+
+    texto: str = Field(
+        min_length=5,
+        max_length=10000,
+        description="Texto a ser verificado",
+        examples=["Governo anuncia nova isenção de impostos"],
+    )
+    tipo: str = Field(
+        default="texto",
+        description="Tipo de conteúdo verificado (texto, imagem ou link)",
+        examples=["texto"],
+    )
+
+
+class VerificacaoResponse(BaseModel):
+    """Representa uma verificação no histórico."""
+
+    id: int
+    texto_verificado: str
+    tipo: str
+    resultado: str = Field(description="REAL, FALSO ou INCONCLUSIVO")
+    confianca: float
+    criado_em: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ResumoResponse(BaseModel):
+    """Estatísticas agregadas do usuário (bloco 'Seu resumo' do dashboard)."""
+
+    total_verificacoes: int = Field(description="Total de verificações feitas")
+    total_reais: int = Field(description="Quantas foram classificadas como REAL")
+    total_falsas: int = Field(description="Quantas foram classificadas como FALSO")
+    total_inconclusivas: int = Field(description="Quantas foram INCONCLUSIVO")
+    percentual_reais: float = Field(description="Percentual de verificações reais")
+
+
+class ListagemVerificacoesResponse(BaseModel):
+    """Resposta paginada do histórico de verificações."""
+
+    total: int = Field(description="Total de verificações que atendem aos filtros")
+    pagina: int = Field(description="Página atual (começa em 1)")
+    por_pagina: int = Field(description="Quantidade de itens por página")
+    total_paginas: int = Field(description="Total de páginas disponíveis")
+    itens: list[VerificacaoResponse] = Field(description="Verificações da página atual")
+
+
+class AtualizarPerfilRequest(BaseModel):
+    """Atualização parcial do perfil. Campos opcionais — só atualiza o que for enviado."""
+
+    nome: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=120,
+        description="Novo nome completo (opcional)",
+    )
+    email: EmailStr | None = Field(
+        default=None,
+        description="Novo e-mail (opcional)",
+    )
+
+
+class TrocarSenhaRequest(BaseModel):
+    """Troca de senha com confirmação da senha atual."""
+
+    senha_atual: str = Field(
+        min_length=1,
+        description="Senha atual (para validação)",
+    )
+    nova_senha: str = Field(
+        min_length=8,
+        max_length=72,
+        description="Nova senha (mínimo 8 caracteres)",
+    )
+
+
+class MensagemResponse(BaseModel):
+    """Resposta genérica de sucesso para operações sem retorno de dados."""
+
+    mensagem: str = Field(description="Descrição do resultado da operação")
