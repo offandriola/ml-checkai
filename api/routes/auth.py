@@ -15,6 +15,9 @@ from api.models.schemas import (
     AtualizarPerfilRequest,
     TrocarSenhaRequest,
     MensagemResponse,
+    RecuperarSenhaRequest,
+    RecuperarSenhaResponse,
+    RedefinirSenhaRequest,
 )
 from api.services.auth import (
     buscar_usuario_por_email,
@@ -23,6 +26,8 @@ from api.services.auth import (
     atualizar_perfil,
     trocar_senha,
     excluir_conta,
+    gerar_recuperacao_senha,
+    redefinir_senha,
 )
 from api.utils.security import criar_token_acesso
 from api.utils.dependencies import get_usuario_atual
@@ -195,3 +200,50 @@ async def excluir_minha_conta(
     """Exclui a conta do usuário autenticado e tudo associado a ela."""
     excluir_conta(db, usuario_atual)
     return MensagemResponse(mensagem="Conta excluída com sucesso.")
+
+
+@router.post(
+    "/recuperar-senha",
+    response_model=RecuperarSenhaResponse,
+    summary="Solicitar recuperação de senha",
+    description=(
+        "Gera um token de redefinição de senha. Por segurança, responde a "
+        "mesma mensagem mesmo que o e-mail não exista. "
+        "NOTA: para fins acadêmicos, o token é retornado na resposta; em "
+        "produção, ele seria enviado por e-mail."
+    ),
+)
+async def recuperar_senha(
+    dados: RecuperarSenhaRequest,
+    db: Session = Depends(get_db),
+) -> RecuperarSenhaResponse:
+    """Solicita a recuperação de senha (token retornado para fins de TCC)."""
+    token = gerar_recuperacao_senha(db, dados.email)
+    return RecuperarSenhaResponse(
+        mensagem=(
+            "Se houver uma conta com este e-mail, um link de recuperação "
+            "foi gerado."
+        ),
+        token_recuperacao=token,  # em produção seria None e iria por e-mail
+    )
+
+
+@router.post(
+    "/redefinir-senha",
+    response_model=MensagemResponse,
+    summary="Redefinir senha com token",
+    description="Redefine a senha usando o token de recuperação recebido.",
+)
+async def redefinir(
+    dados: RedefinirSenhaRequest,
+    db: Session = Depends(get_db),
+) -> MensagemResponse:
+    """Redefine a senha do usuário a partir de um token de recuperação."""
+    try:
+        redefinir_senha(db, dados.token, dados.nova_senha)
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(erro),
+        )
+    return MensagemResponse(mensagem="Senha redefinida com sucesso.")

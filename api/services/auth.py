@@ -7,10 +7,13 @@
 # ==============================================================================
 
 from sqlalchemy.orm import Session
-
 from api.db_models.user import User
 from api.utils.security import gerar_hash_senha
 from api.utils.security import verificar_senha
+from api.utils.security import (
+    criar_token_recuperacao,
+    decodificar_token_recuperacao,
+)
 
 
 def buscar_usuario_por_email(db: Session, email: str) -> User | None:
@@ -98,4 +101,37 @@ def excluir_conta(db: Session, usuario: User) -> None:
     apaga automaticamente todas as verificações associadas.
     """
     db.delete(usuario)
+    db.commit()
+
+
+def gerar_recuperacao_senha(db: Session, email: str) -> str | None:
+    """
+    Gera um token de recuperação para o e-mail informado.
+
+    Retorna o token se o usuário existir, ou None caso contrário.
+    A ROTA deve responder a mesma mensagem nos dois casos, para não
+    revelar se o e-mail está cadastrado (anti user enumeration).
+    """
+    usuario = buscar_usuario_por_email(db, email)
+    if not usuario:
+        return None
+    return criar_token_recuperacao(usuario.id)
+
+
+def redefinir_senha(db: Session, token: str, nova_senha: str) -> None:
+    """
+    Redefine a senha a partir de um token de recuperação válido.
+
+    Levanta ValueError se o token for inválido/expirado ou se o usuário
+    não existir mais.
+    """
+    usuario_id = decodificar_token_recuperacao(token)
+    if usuario_id is None:
+        raise ValueError("Token de recuperação inválido ou expirado.")
+
+    usuario = db.query(User).filter(User.id == usuario_id).first()
+    if usuario is None:
+        raise ValueError("Usuário não encontrado.")
+
+    usuario.senha_hash = gerar_hash_senha(nova_senha)
     db.commit()
