@@ -1,0 +1,18 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Ambiente virtual
+.venv
+venv
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Notebook checkpoints
+.ipynb_checkpoints

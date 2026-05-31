@@ -1,0 +1,19 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Ambiente virtual
+.venv
+venv
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Arquivos de ambiente locais
+.env
+*.env.local

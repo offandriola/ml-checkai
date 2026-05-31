@@ -1,0 +1,13 @@
+# Git
+.git
+.gitignore
+
+# Dependências
+node_modules
+
+# Build output
+dist
+
+# Arquivos de ambiente locais
+.env
+.env.*
