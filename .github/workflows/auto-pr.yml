@@ -1,0 +1,26 @@
+name: Auto Create PR from feature branch
+
+on:
+  push:
+    branches:
+      - feat/**
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create Pull Request
+        id: open-pr
+        uses: diillson/auto-pull-request@v1.0.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          destination_branch: main
+          source_branch: ${{ github.ref_name }}
+          pr_title: "feature: ${{ github.ref_name }}"
+          pr_body: |
+            Este pull request foi criado automaticamente para integrar as alterações da branch **${{ github.ref_name }}** na branch main.
+          pr_draft: false 
