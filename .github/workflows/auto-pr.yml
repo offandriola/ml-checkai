@@ -5,6 +5,10 @@ on:
     branches:
       - feat/**
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   create-pull-request:
     runs-on: ubuntu-latest
@@ -23,4 +27,4 @@ jobs:
           pr_title: "feature: ${{ github.ref_name }}"
           pr_body: |
             Este pull request foi criado automaticamente para integrar as alterações da branch **${{ github.ref_name }}** na branch main.
-          pr_draft: false 
+          pr_draft: false
