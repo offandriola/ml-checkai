@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Rota: Coleta de Dados
 # ==============================================================================
 # Endpoints para disparar os pipelines de coleta de dados.
@@ -14,20 +14,20 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 
-from api.config import (
+from config import (
     PIPELINE_GOOGLE_FACTCHECK,
     PIPELINE_FONTES_OFICIAIS,
     PIPELINE_NOTICIAS_REAIS,
 )
-from api.models.schemas import (
+from models.schemas import (
     ColetaGoogleRequest,
     ColetaFontesOficiaisRequest,
     ColetaResponse,
     ColetaTodasResponse,
 )
-from api.services.google_factcheck import coletar_google_factcheck
-from api.services.fontes_oficiais import coletar_todas_fontes_oficiais
-from api.services.rss_noticias import coletar_rss_noticias
+from services.google_factcheck import coletar_google_factcheck
+from services.fontes_oficiais import coletar_todas_fontes_oficiais
+from services.rss_noticias import coletar_rss_noticias
 
 
 logger = logging.getLogger(__name__)

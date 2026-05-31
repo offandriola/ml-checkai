@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Rota: Autenticação
 # ==============================================================================
 # Endpoints de cadastro e (futuramente) login de usuários.
@@ -6,8 +6,8 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from api.database import get_db
-from api.models.schemas import (
+from database import get_db
+from models.schemas import (
     CadastroRequest,
     UsuarioResponse,
     LoginRequest,
@@ -19,7 +19,7 @@ from api.models.schemas import (
     RecuperarSenhaResponse,
     RedefinirSenhaRequest,
 )
-from api.services.auth import (
+from services.auth import (
     buscar_usuario_por_email,
     criar_usuario,
     autenticar_usuario,
@@ -29,10 +29,10 @@ from api.services.auth import (
     gerar_recuperacao_senha,
     redefinir_senha,
 )
-from api.utils.security import criar_token_acesso
-from api.utils.dependencies import get_usuario_atual
-from api.db_models.user import User
-from api.services.verificacao import limpar_historico
+from utils.security import criar_token_acesso
+from utils.dependencies import get_usuario_atual
+from db_models.user import User
+from services.verificacao import limpar_historico
 
 
 router = APIRouter(

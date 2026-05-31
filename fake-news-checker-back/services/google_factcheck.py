@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Serviço de Coleta: Google Fact Check Tools API
 # ==============================================================================
 # Módulo convertido do notebook: src/coleta_google_check.ipynb
@@ -20,11 +20,11 @@ from datetime import datetime
 import requests
 import pandas as pd
 
-from api.config import (
+from config import (
     GOOGLE_FACTCHECK_API_KEY,
     PIPELINE_GOOGLE_FACTCHECK,
 )
-from api.utils.csv_handler import salvar_csv_raw
+from utils.csv_handler import salvar_csv_raw
 
 
 # Configuração do logger para este módulo

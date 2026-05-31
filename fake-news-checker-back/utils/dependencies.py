@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Dependências de Autenticação
 # ==============================================================================
 # Dependência reutilizável que protege rotas exigindo um token JWT válido.
@@ -18,9 +18,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
-from api.database import get_db
-from api.db_models.user import User
-from api.utils.security import decodificar_token
+from database import get_db
+from db_models.user import User
+from utils.security import decodificar_token
 
 
 # Esquema de segurança que o Swagger reconhece (gera o botão "Authorize")

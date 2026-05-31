@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Rota: Verificações (Histórico)
 # ==============================================================================
 # Endpoints protegidos para criar, listar e resumir as verificações do
@@ -8,26 +8,26 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from api.database import get_db
-from api.db_models.user import User
-from api.models.schemas import (
+from database import get_db
+from db_models.user import User
+from models.schemas import (
     VerificacaoCreateRequest,
     VerificacaoResponse,
     ResumoResponse,
 )
-from api.services.verificacao import (
+from services.verificacao import (
     criar_verificacao,
     listar_verificacoes,
     calcular_resumo,
 )
-from api.utils.dependencies import get_usuario_atual
-from api.models.schemas import (
+from utils.dependencies import get_usuario_atual
+from models.schemas import (
     VerificacaoCreateRequest,
     VerificacaoResponse,
     ResumoResponse,
     ListagemVerificacoesResponse,
 )
-from api.services.verificacao import (
+from services.verificacao import (
     criar_verificacao,
     listar_verificacoes,
     calcular_resumo,

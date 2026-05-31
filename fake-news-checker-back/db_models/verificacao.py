@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Modelo: Verificação
 # ==============================================================================
 # Cada registro representa uma verificação (checagem) feita por um usuário.
@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
-from api.database import Base
+from database import Base
 
 
 class Verificacao(Base):

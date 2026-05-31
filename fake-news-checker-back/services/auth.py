@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Service: Autenticação
 # ==============================================================================
 # Lógica de negócio para cadastro e autenticação de usuários.
@@ -7,10 +7,10 @@
 # ==============================================================================
 
 from sqlalchemy.orm import Session
-from api.db_models.user import User
-from api.utils.security import gerar_hash_senha
-from api.utils.security import verificar_senha
-from api.utils.security import (
+from db_models.user import User
+from utils.security import gerar_hash_senha
+from utils.security import verificar_senha
+from utils.security import (
     criar_token_recuperacao,
     decodificar_token_recuperacao,
 )

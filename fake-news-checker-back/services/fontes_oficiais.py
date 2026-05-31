@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Serviço de Coleta: Fontes Oficiais (Câmara e Senado)
 # ==============================================================================
 # Módulo convertido do notebook: src/coleta_fontes_oficiais.ipynb
@@ -20,8 +20,8 @@ from datetime import datetime
 import requests
 import pandas as pd
 
-from api.config import PIPELINE_FONTES_OFICIAIS
-from api.utils.csv_handler import salvar_csv_raw
+from config import PIPELINE_FONTES_OFICIAIS
+from utils.csv_handler import salvar_csv_raw
 
 
 # Configuração do logger para este módulo

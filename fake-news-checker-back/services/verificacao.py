@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Service: Verificações
 # ==============================================================================
 # Lógica de negócio do histórico de verificações:
@@ -10,8 +10,8 @@
 
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from api.db_models.verificacao import Verificacao
-from api.services.classificador import classificar_texto
+from db_models.verificacao import Verificacao
+from services.classificador import classificar_texto
 
 
 # Abaixo deste nível de confiança, o resultado é tratado como INCONCLUSIVO.

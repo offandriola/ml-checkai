@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Rota: Consulta de Dados
 # ==============================================================================
 # Endpoints para consultar os dados coletados pelos pipelines.
@@ -11,19 +11,19 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 
-from api.config import (
+from config import (
     PIPELINE_GOOGLE_FACTCHECK,
     PIPELINE_FONTES_OFICIAIS,
     PIPELINE_NOTICIAS_REAIS,
     PIPELINES_RAW,
 )
-from api.models.schemas import (
+from models.schemas import (
     ArquivoInfo,
     PipelineInfo,
     EstatisticasResponse,
     DadosResponse,
 )
-from api.utils.csv_handler import (
+from utils.csv_handler import (
     listar_arquivos_pipeline,
     carregar_csv_mais_recente,
     contar_registros_pipeline,

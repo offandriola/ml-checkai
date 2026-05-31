@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Utilitário de Manipulação de CSVs
 # ==============================================================================
 # Funções compartilhadas para leitura, escrita e listagem de arquivos CSV
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from api.config import PIPELINES_RAW
+from config import PIPELINES_RAW
 
 
 def salvar_csv_raw(

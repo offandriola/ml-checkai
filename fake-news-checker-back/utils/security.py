@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Utilitários de Segurança (Hashing de Senhas)
 # ==============================================================================
 # Funções para hashing e verificação de senhas usando bcrypt.
@@ -12,7 +12,7 @@
 import bcrypt
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
-from api.config import JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRACAO_MINUTOS
+from config import JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRACAO_MINUTOS
 
 
 def gerar_hash_senha(senha: str) -> str:

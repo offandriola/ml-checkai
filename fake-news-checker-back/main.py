@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Ponto de Entrada da Aplicação
 # ==============================================================================
 # Este é o módulo principal do backend FastAPI do projeto CheckAI.
@@ -35,9 +35,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from api.config import API_TITULO, API_DESCRICAO, API_VERSAO, API_DEBUG
-from api.routes import health, coleta, dados, classificador, auth, verificacao, dashboard
-from api.services.classificador import carregar_modelo
+from config import API_TITULO, API_DESCRICAO, API_VERSAO, API_DEBUG
+from routes import health, coleta, dados, classificador, auth, verificacao, dashboard
+from services.classificador import carregar_modelo
 
 # ==============================================================================
 # Configuração de Logging

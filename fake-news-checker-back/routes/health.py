@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Rota: Health Check
 # ==============================================================================
 # Endpoint de verificação de saúde da API.
@@ -10,8 +10,8 @@ from datetime import datetime
 
 from fastapi import APIRouter
 
-from api.config import API_VERSAO
-from api.models.schemas import HealthResponse
+from config import API_VERSAO
+from models.schemas import HealthResponse
 
 
 # Cria o router com prefixo e tag para organização no Swagger

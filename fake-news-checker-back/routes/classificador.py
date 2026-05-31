@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Rota: Classificação de Textos
 # ==============================================================================
 # Endpoints para classificar textos como VERDADEIRO ou FALSO usando o
@@ -11,12 +11,12 @@ import logging
 
 from fastapi import APIRouter
 
-from api.models.schemas import (
+from models.schemas import (
     ClassificacaoRequest,
     ClassificacaoResponse,
     StatusModeloResponse,
 )
-from api.services.classificador import (
+from services.classificador import (
     classificar_texto,
     verificar_status_modelo,
 )

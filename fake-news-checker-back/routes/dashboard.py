@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
+﻿from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
 # Ajuste o import do banco caso o seu "get_db" esteja em outro lugar (geralmente fica em api.database)
-from api.database import get_db 
-from api.db_models.verificacao import Verificacao
+from database import get_db 
+from db_models.verificacao import Verificacao
 
 # Cria o router para os endpoints do dashboard
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"])

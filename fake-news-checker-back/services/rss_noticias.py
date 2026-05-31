@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Serviço de Coleta: Feeds RSS de Notícias Reais
 # ==============================================================================
 # Módulo convertido do notebook: src/coleta_rss_noticias_reais.ipynb
@@ -20,8 +20,8 @@ from datetime import datetime
 import feedparser
 import pandas as pd
 
-from api.config import PIPELINE_NOTICIAS_REAIS
-from api.utils.csv_handler import salvar_csv_raw
+from config import PIPELINE_NOTICIAS_REAIS
+from utils.csv_handler import salvar_csv_raw
 
 
 # Configuração do logger para este módulo

@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # CheckAI API — Serviço de Classificação de Textos
 # ==============================================================================
 # Responsável por:
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import joblib
 
-from api.config import CAMINHO_MODELO
+from config import CAMINHO_MODELO
 
 
 # Configuração do logger para este módulo
