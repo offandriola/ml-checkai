@@ -36,10 +36,8 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from api.config import API_TITULO, API_DESCRICAO, API_VERSAO, API_DEBUG
-from api.routes import health, coleta, dados, classificador, auth, verificacao
+from api.routes import health, coleta, dados, classificador, auth, verificacao, dashboard
 from api.services.classificador import carregar_modelo
-
-
 
 # ==============================================================================
 # Configuração de Logging
@@ -55,7 +53,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
 
 # ==============================================================================
 # Ciclo de Vida (Lifespan) — substitui @app.on_event (deprecated)
@@ -88,7 +85,6 @@ async def lifespan(app: FastAPI):
     # --- SHUTDOWN ---
     logger.info("Encerrando API...")
 
-
 # ==============================================================================
 # Instância da Aplicação FastAPI
 # ==============================================================================
@@ -109,7 +105,6 @@ app = FastAPI(
     openapi_url="/openapi.json" if API_DEBUG else None,
 )
 
-
 # ==============================================================================
 # Middleware: CORS
 # ==============================================================================
@@ -128,7 +123,6 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],  # SEGURANÇA: headers explícitos
 )
 
-
 # ==============================================================================
 # Middleware: Trusted Host (proteção contra Host Header Injection)
 # ==============================================================================
@@ -141,7 +135,6 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["localhost", "127.0.0.1"] if API_DEBUG else ["*"], # Em prod, substitua "*" pelo seu domínio real
 )
-
 
 # ==============================================================================
 # Middleware: Security Headers
@@ -207,7 +200,6 @@ async def add_security_headers(request: Request, call_next):
 
     return response
 
-
 # ==============================================================================
 # Middleware: Rate Limiting (proteção contra DoS/Brute Force)
 # ==============================================================================
@@ -226,7 +218,6 @@ async def add_security_headers(request: Request, call_next):
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
 RATE_LIMIT_MAX_REQUESTS = 30   # Máximo de requisições
 RATE_LIMIT_WINDOW_SECONDS = 60  # Janela de tempo em segundos
-
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
@@ -265,7 +256,6 @@ async def rate_limit_middleware(request: Request, call_next):
 
     return await call_next(request)
 
-
 # ==============================================================================
 # Handler Global de Erros
 # ==============================================================================
@@ -298,7 +288,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-
 # ==============================================================================
 # Registro dos Routers
 # ==============================================================================
@@ -312,7 +301,7 @@ app.include_router(dados.router)
 app.include_router(classificador.router)
 app.include_router(auth.router)
 app.include_router(verificacao.router)
-
+app.include_router(dashboard.router)
 
 # ==============================================================================
 # Rota Raiz (Informativa)
