@@ -1,0 +1,47 @@
+{
+  "nome_modelo": "baseline_tfidf_svm_v3_text_control_2026-05-27_00-29-53",
+  "data_treino": "2026-05-27 00-29-53",
+  "dataset_treino": "v3_text_control",
+  "arquivo_dataset": "dataset_final_treino_v3_text_control_2026-05-26_23-54-08.csv",
+  "campo_texto": "texto_principal_modelo",
+  "random_state": 42,
+  "test_size": 0.2,
+  "n_total": 9050,
+  "n_treino": 7240,
+  "n_teste": 1810,
+  "n_features_tfidf": 50000,
+  "tfidf_params": {
+    "lowercase": true,
+    "strip_accents": "unicode",
+    "ngram_range": [
+      1,
+      2
+    ],
+    "min_df": 2,
+    "max_df": 0.9,
+    "max_features": 50000,
+    "sublinear_tf": true
+  },
+  "modelo_tipo": "svm",
+  "metricas_teste": {
+    "accuracy": 0.9337,
+    "precision_macro": 0.9338,
+    "recall_macro": 0.9337,
+    "f1_macro": 0.9337,
+    "precision_label_0": 0.9415,
+    "recall_label_0": 0.9249,
+    "f1_label_0": 0.9331,
+    "precision_label_1": 0.9262,
+    "recall_label_1": 0.9425,
+    "f1_label_1": 0.9343,
+    "roc_auc": 0.9816,
+    "pr_auc": 0.9819
+  },
+  "observacoes": [
+    "V3 usa texto_principal_modelo para reduzir viés de tamanho.",
+    "Sem oversampling. Sem BERTimbau. Sem LLM.",
+    "Split estratificado por label com random_state=42.",
+    "LinearSVM calibrado com CalibratedClassifierCV(cv=3) para predict_proba.",
+    "MultinomialNB usa sublinear_tf=False para preservar semântica de contagens."
+  ]
+}

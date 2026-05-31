@@ -1,0 +1,44 @@
+{
+  "nome": "baseline_tfidf_svm_v4_balanced_2026-05-30_23-44-02",
+  "timestamp": "2026-05-30_23-44-02",
+  "dataset_usado": "dataset_final_treino_v4_balanced_2026-05-30_23-29-02.csv",
+  "n_registros": 10602,
+  "distribuicao_label": {
+    "0": 5301,
+    "1": 5301
+  },
+  "tfidf_params": {
+    "lowercase": true,
+    "strip_accents": "unicode",
+    "analyzer": "word",
+    "ngram_range": [
+      1,
+      2
+    ],
+    "min_df": 2,
+    "max_df": 0.9,
+    "max_features": 50000,
+    "sublinear_tf": true
+  },
+  "modelo_params": {
+    "class_weight": "balanced",
+    "max_iter": 5000,
+    "calibrated": true
+  },
+  "metricas": {
+    "accuracy": 0.9382,
+    "precision_macro": 0.9384,
+    "recall_macro": 0.9382,
+    "f1_macro": 0.9382,
+    "precision_label_0": 0.9463,
+    "recall_label_0": 0.9293,
+    "f1_label_0": 0.9377,
+    "precision_label_1": 0.9305,
+    "recall_label_1": 0.9472,
+    "f1_label_1": 0.9388,
+    "roc_auc": 0.9812
+  },
+  "n_features_tfidf": 50000,
+  "candidato_producao": true,
+  "observacao": "V4 balanced — base expandida com CheckAI Autoral + GFC. Avaliar f1 por dataset_origem antes de promover a producao."
+}

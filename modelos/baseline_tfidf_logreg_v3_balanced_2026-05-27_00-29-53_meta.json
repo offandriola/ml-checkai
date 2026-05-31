@@ -1,0 +1,47 @@
+{
+  "nome_modelo": "baseline_tfidf_logreg_v3_balanced_2026-05-27_00-29-53",
+  "data_treino": "2026-05-27 00-29-53",
+  "dataset_treino": "v3_balanced",
+  "arquivo_dataset": "dataset_final_treino_v3_balanced_2026-05-26_23-54-08.csv",
+  "campo_texto": "texto_principal_modelo",
+  "random_state": 42,
+  "test_size": 0.2,
+  "n_total": 10340,
+  "n_treino": 8272,
+  "n_teste": 2068,
+  "n_features_tfidf": 50000,
+  "tfidf_params": {
+    "lowercase": true,
+    "strip_accents": "unicode",
+    "ngram_range": [
+      1,
+      2
+    ],
+    "min_df": 2,
+    "max_df": 0.9,
+    "max_features": 50000,
+    "sublinear_tf": true
+  },
+  "modelo_tipo": "logreg",
+  "metricas_teste": {
+    "accuracy": 0.94,
+    "precision_macro": 0.94,
+    "recall_macro": 0.94,
+    "f1_macro": 0.94,
+    "precision_label_0": 0.94,
+    "recall_label_0": 0.94,
+    "f1_label_0": 0.94,
+    "precision_label_1": 0.94,
+    "recall_label_1": 0.94,
+    "f1_label_1": 0.94,
+    "roc_auc": 0.9787,
+    "pr_auc": 0.9805
+  },
+  "observacoes": [
+    "V3 usa texto_principal_modelo para reduzir viés de tamanho.",
+    "Sem oversampling. Sem BERTimbau. Sem LLM.",
+    "Split estratificado por label com random_state=42.",
+    "LinearSVM calibrado com CalibratedClassifierCV(cv=3) para predict_proba.",
+    "MultinomialNB usa sublinear_tf=False para preservar semântica de contagens."
+  ]
+}

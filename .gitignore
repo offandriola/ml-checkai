@@ -9,6 +9,7 @@ dados/**/*.csv
 dados/**/*.xlsx
 dados/**/*.parquet
 dados/**/*.zip
+dados/**/*.md
 
 # permitir datasets finais pequenos e versionados
 !dados/dataset_unificado/
@@ -39,7 +40,7 @@ web/dist/
 web/.turbo/
 web/.vercel/
 
-# Dados brutos de datasets acadêmicos
+# dados brutos dos datasets acadêmicos
 dados/pipeline_datasets_academicos/raw/**
 !dados/pipeline_datasets_academicos/raw/
 !dados/pipeline_datasets_academicos/raw/**/
