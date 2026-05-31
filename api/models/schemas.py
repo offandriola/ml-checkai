@@ -404,3 +404,39 @@ class MensagemResponse(BaseModel):
     """Resposta genérica de sucesso para operações sem retorno de dados."""
 
     mensagem: str = Field(description="Descrição do resultado da operação")
+
+
+class RecuperarSenhaRequest(BaseModel):
+    """Solicitação de recuperação de senha."""
+
+    email: EmailStr = Field(
+        description="E-mail da conta para recuperação",
+        examples=["usuario@exemplo.com"],
+    )
+
+
+class RecuperarSenhaResponse(BaseModel):
+    """
+    Resposta da solicitação de recuperação.
+
+    NOTA ACADÊMICA: em produção, o token seria enviado por e-mail e NÃO
+    retornado aqui. Para fins de demonstração do TCC, ele é devolvido na
+    resposta para permitir testar o fluxo sem servidor de e-mail.
+    """
+
+    mensagem: str = Field(description="Confirmação da solicitação")
+    token_recuperacao: str | None = Field(
+        default=None,
+        description="[MOCK/TCC] Token de redefinição (iria por e-mail em produção)",
+    )
+
+
+class RedefinirSenhaRequest(BaseModel):
+    """Redefinição de senha usando o token de recuperação."""
+
+    token: str = Field(description="Token de recuperação recebido")
+    nova_senha: str = Field(
+        min_length=8,
+        max_length=72,
+        description="Nova senha (mínimo 8 caracteres)",
+    )

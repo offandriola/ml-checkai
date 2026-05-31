@@ -1,0 +1,577 @@
+import { useState, type CSSProperties } from "react";
+import {
+  FileText,
+  Image,
+  Link2,
+  ArrowRight,
+  Trash2,
+  ShieldCheck,
+  Lightbulb,
+  Zap,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Newspaper,
+  MessageSquare,
+} from "lucide-react";
+
+type TabType = "text" | "image" | "link";
+type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
+
+interface VerificationStep {
+  id: number;
+  label: string;
+  completed: boolean;
+}
+
+interface Verification {
+  id: string;
+  content: string;
+  type: TabType;
+  steps: VerificationStep[];
+  currentStepIndex: number;
+  result?: ResultType;
+  timestamp: Date;
+}
+
+interface HomePageProps {
+  verifications: Verification[];
+  onSubmit: (value: string, type: TabType) => void;
+}
+
+const MOCK_RECENT = [
+  { id: "m1", title: "Governo anuncia nova isenção de imposto para quem ganha R$ 5 mil por mês.", result: "nao_verificavel" as ResultType },
+  { id: "m2", title: "Vacina experimental causa infertilidade em mulheres.", result: "falsa" as ResultType },
+  { id: "m3", title: "Terremoto no Brasil foi provocado por...", result: "falsa" as ResultType },
+  { id: "m4", title: "Governo Federal não cumpriu lei de financiamento...", result: "falsa" as ResultType },
+  { id: "m5", title: "Água com limão em jejum cura câncer.", result: "nao_verificavel" as ResultType },
+];
+
+const RESULT_CONFIG = {
+  verdadeira: { label: "Real", color: "#4caf50", bg: "rgba(76,175,80,0.15)" },
+  falsa: { label: "Falso", color: "#f44336", bg: "rgba(244,67,54,0.15)" },
+  nao_verificavel: { label: "Inconclusivo", color: "#ff9800", bg: "rgba(255,152,0,0.15)" },
+};
+
+const QUICK_MODELS = [
+  { label: "Notícia", icon: Newspaper },
+  { label: "Feed de rede social", icon: MessageSquare },
+  { label: "Link de matéria", icon: Link2 },
+];
+
+const TIPS = [
+  "Seja específico com nomes e datas.",
+  "Adicione o contexto digital relevante.",
+  "Indique a fonte digital sempre que possível.",
+];
+
+function ResultBadge({ result }: { result: ResultType }) {
+  const cfg = RESULT_CONFIG[result];
+  return (
+    <span
+      style={{
+        fontSize: "11px",
+        fontWeight: 600,
+        padding: "2px 8px",
+        borderRadius: "20px",
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {cfg.label}
+    </span>
+  );
+}
+
+function DonutGauge({ percentage }: { percentage: number }) {
+  const r = 40;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - percentage / 100);
+  return (
+    <svg width="100" height="100" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+      <circle
+        cx="50" cy="50" r={r} fill="none"
+        stroke="var(--m3-primary)" strokeWidth="10"
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform="rotate(-90 50 50)"
+        style={{ transition: "stroke-dashoffset 0.8s ease" }}
+      />
+      <text x="50" y="46" textAnchor="middle" fill="var(--m3-on-surface)" fontSize="16" fontWeight="700">
+        {percentage}%
+      </text>
+      <text x="50" y="62" textAnchor="middle" fill="var(--m3-on-surface-variant)" fontSize="9">
+        Alta confiança
+      </text>
+    </svg>
+  );
+}
+
+export function HomePage({ verifications, onSubmit }: HomePageProps) {
+  const [activeTab, setActiveTab] = useState<TabType>("text");
+  const [inputValue, setInputValue] = useState("");
+  const maxLength = 5000;
+
+  const placeholder =
+    activeTab === "link" ? "Cole um link para verificar..."
+    : activeTab === "image" ? "Cole a URL da imagem..."
+    : "Este é a notícia, afirmação ou conteúdo que deseja verificar...";
+
+  const handleSubmit = () => {
+    if (!inputValue.trim()) return;
+    onSubmit(inputValue, activeTab);
+    setInputValue("");
+  };
+
+  const handleClear = () => setInputValue("");
+
+  const recentItems = verifications.length > 0
+    ? verifications.slice(-5).reverse().map(v => ({ id: v.id, title: v.content, result: v.result ?? "nao_verificavel" as ResultType }))
+    : MOCK_RECENT;
+
+  return (
+    <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
+
+      {/* ── Main Form Area ── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h1
+          style={{
+            fontSize: "22px",
+            fontWeight: 600,
+            color: "var(--m3-on-surface)",
+            marginBottom: "4px",
+          }}
+        >
+          Nova verificação
+        </h1>
+        <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", marginBottom: "20px" }}>
+          Cole um texto, escreva uma pergunta ou informe um link para análise.
+        </p>
+
+        {/* Form Card */}
+        <div
+          style={{
+            borderRadius: "14px",
+            border: "1px solid var(--m3-outline)",
+            backgroundColor: "var(--m3-surface-container)",
+            overflow: "hidden",
+            marginBottom: "16px",
+          }}
+        >
+          {/* Tabs */}
+          <div style={{ display: "flex", borderBottom: "1px solid var(--m3-outline)" }}>
+            {(
+              [
+                { type: "text" as TabType, label: "Todo", icon: FileText },
+                { type: "image" as TabType, label: "Imagem", icon: Image },
+                { type: "link" as TabType, label: "Link", icon: Link2 },
+              ]
+            ).map(({ type, label, icon: Icon }, i) => (
+              <button
+                key={type}
+                onClick={() => setActiveTab(type)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "12px 20px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  border: "none",
+                  borderRight: i < 2 ? "1px solid var(--m3-outline)" : "none",
+                  cursor: "pointer",
+                  backgroundColor: "transparent",
+                  color: activeTab === type ? "var(--m3-primary)" : "var(--m3-on-surface-variant)",
+                  borderBottom: activeTab === type ? "2px solid var(--m3-primary)" : "2px solid transparent",
+                  transition: "color 0.15s",
+                }}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Textarea */}
+          <div style={{ position: "relative" }}>
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={placeholder}
+              maxLength={maxLength}
+              rows={7}
+              style={{
+                width: "100%",
+                padding: "16px",
+                paddingBottom: "32px",
+                backgroundColor: "transparent",
+                border: "none",
+                outline: "none",
+                resize: "none",
+                fontSize: "14px",
+                color: "var(--m3-on-surface)",
+                lineHeight: "1.6",
+                display: "block",
+                boxSizing: "border-box",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                bottom: "10px",
+                right: "14px",
+                fontSize: "11px",
+                color: "var(--m3-on-surface-variant)",
+              }}
+            >
+              {inputValue.length}/{maxLength.toLocaleString("pt-BR")} caracteres
+            </span>
+          </div>
+
+          {/* Attachment hint for image tab */}
+          {activeTab === "image" && (
+            <div
+              style={{
+                margin: "0 16px 12px",
+                padding: "12px",
+                borderRadius: "10px",
+                border: "1px dashed var(--m3-outline)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                color: "var(--m3-on-surface-variant)",
+                fontSize: "13px",
+                cursor: "pointer",
+              }}
+            >
+              <Image size={16} />
+              PNG, JPG ou WEBP até 5MB
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
+          <button
+            onClick={handleSubmit}
+            disabled={!inputValue.trim()}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "13px 20px",
+              borderRadius: "10px",
+              border: "none",
+              cursor: inputValue.trim() ? "pointer" : "not-allowed",
+              backgroundColor: "var(--m3-primary)",
+              color: "var(--m3-on-primary)",
+              fontSize: "14px",
+              fontWeight: 600,
+              opacity: inputValue.trim() ? 1 : 0.5,
+              transition: "opacity 0.15s",
+            }}
+          >
+            Verificar Informação
+            <ArrowRight size={16} />
+          </button>
+          <button
+            onClick={handleClear}
+            style={{
+              padding: "13px 18px",
+              borderRadius: "10px",
+              border: "1px solid var(--m3-outline)",
+              cursor: "pointer",
+              backgroundColor: "transparent",
+              color: "var(--m3-on-surface-variant)",
+              fontSize: "14px",
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <Trash2 size={15} />
+            Limpar
+          </button>
+        </div>
+
+        {/* Privacy Note */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            marginBottom: "28px",
+          }}
+        >
+          <ShieldCheck size={13} style={{ color: "var(--m3-on-surface-variant)" }} />
+          <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>
+            Seus dados são protegidos e não compartilhados com terceiros.
+          </p>
+        </div>
+
+        {/* Tips + Quick Models Row */}
+        <div style={{ display: "flex", gap: "16px", marginBottom: "28px", flexWrap: "wrap" }}>
+          {/* Tips */}
+          <div
+            style={{
+              flex: "1 1 220px",
+              borderRadius: "12px",
+              padding: "16px",
+              backgroundColor: "var(--m3-surface-container)",
+              border: "1px solid var(--m3-outline)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "12px" }}>
+              <Lightbulb size={15} style={{ color: "var(--m3-primary)" }} />
+              <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
+                Dicas para verificar
+              </p>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {TIPS.map((tip, i) => (
+                <li
+                  key={i}
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    fontSize: "12px",
+                    color: "var(--m3-on-surface-variant)",
+                    lineHeight: "1.5",
+                    marginBottom: i < TIPS.length - 1 ? "6px" : 0,
+                  }}
+                >
+                  <span style={{ color: "var(--m3-primary)", flexShrink: 0 }}>•</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Quick Models */}
+          <div
+            style={{
+              flex: "1 1 220px",
+              borderRadius: "12px",
+              padding: "16px",
+              backgroundColor: "var(--m3-surface-container)",
+              border: "1px solid var(--m3-outline)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "12px" }}>
+              <Zap size={15} style={{ color: "var(--m3-primary)" }} />
+              <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
+                Modelos rápidos
+              </p>
+            </div>
+            <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)", marginBottom: "10px" }}>
+              Use um template para cada tipo de consulta:
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {QUICK_MODELS.map(({ label, icon: Icon }) => (
+                <button
+                  key={label}
+                  onClick={() => setInputValue(`[${label}] `)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "6px 10px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--m3-outline)",
+                    cursor: "pointer",
+                    backgroundColor: "transparent",
+                    color: "var(--m3-on-surface-variant)",
+                    fontSize: "12px",
+                  }}
+                >
+                  <Icon size={13} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Footer */}
+        <div
+          style={{
+            display: "flex",
+            gap: "24px",
+            flexWrap: "wrap",
+          }}
+        >
+          {[
+            { label: "verificações hoje", value: "12", icon: Clock },
+            { label: "plano atual", value: "Pro", icon: CheckCircle2 },
+            { label: "análises realizadas", value: "348", icon: BarChartIcon },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Icon size={15} style={{ color: "var(--m3-on-surface-variant)" }} />
+              <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--m3-on-surface)" }}>{value}</span>
+              <span style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Right Panel ── */}
+      <div style={{ width: "300px", flexShrink: 0 }}>
+
+        {/* Recent Verifications */}
+        <div
+          style={{
+            borderRadius: "14px",
+            border: "1px solid var(--m3-outline)",
+            backgroundColor: "var(--m3-surface-container)",
+            marginBottom: "16px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              borderBottom: "1px solid var(--m3-outline)",
+            }}
+          >
+            <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
+              Verificações recentes
+            </p>
+            <button
+              style={{
+                fontSize: "12px",
+                color: "var(--m3-primary)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              Ver todos
+            </button>
+          </div>
+
+          {recentItems.map((item, i) => (
+            <div
+              key={item.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "10px 16px",
+                borderBottom: i < recentItems.length - 1 ? "1px solid var(--m3-outline)" : "none",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--m3-on-surface)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    marginBottom: "3px",
+                  }}
+                >
+                  {item.title}
+                </p>
+                <ResultBadge result={item.result} />
+              </div>
+              <ChevronRight size={14} style={{ color: "var(--m3-on-surface-variant)", flexShrink: 0 }} />
+            </div>
+          ))}
+
+          <div
+            style={{
+              padding: "10px 16px",
+              borderTop: "1px solid var(--m3-outline)",
+            }}
+          >
+            <button
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "12px",
+                color: "var(--m3-primary)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}
+            >
+              Abrir todas as consultas
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div
+          style={{
+            borderRadius: "14px",
+            border: "1px solid var(--m3-outline)",
+            backgroundColor: "var(--m3-surface-container)",
+            padding: "16px",
+          }}
+        >
+          <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)", marginBottom: "16px" }}>
+            Seu resumo
+          </p>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+            <DonutGauge percentage={72} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div>
+                <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Verificações realizadas</p>
+                <p style={{ fontSize: "18px", fontWeight: 700, color: "var(--m3-on-surface)" }}>128</p>
+              </div>
+              <div>
+                <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Falsas</p>
+                <p style={{ fontSize: "16px", fontWeight: 700, color: "#f44336" }}>5 <span style={{ fontSize: "12px", fontWeight: 400, color: "var(--m3-on-surface-variant)" }}>(3%)</span></p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "10px 12px",
+              borderRadius: "10px",
+              backgroundColor: "rgba(255,255,255,0.04)",
+              border: "1px solid var(--m3-outline)",
+            }}
+          >
+            <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)", marginBottom: "2px" }}>
+              Tempo médio por verificação
+            </p>
+            <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--m3-on-surface)" }}>1m 42s</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Inline icon for stats (BarChart2 renamed to avoid shadowing)
+function BarChartIcon({ size, style }: { size: number; style?: CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  );
+}
