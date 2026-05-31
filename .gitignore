@@ -9,6 +9,7 @@ dados/**/*.csv
 dados/**/*.xlsx
 dados/**/*.parquet
 dados/**/*.zip
+dados/**/*.md
 
 # permitir datasets finais pequenos e versionados
 !dados/dataset_unificado/
