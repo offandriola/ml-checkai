@@ -1,0 +1,47 @@
+# chaves e variáveis de ambiente
+.env
+*.env
+google-factcheck-api-key.env
+portal-transparencia-api-key.env
+
+# dados brutos/gerados
+dados/**/*.csv
+dados/**/*.xlsx
+dados/**/*.parquet
+dados/**/*.zip
+dados/**/*.md
+
+# permitir datasets finais pequenos e versionados
+!dados/dataset_unificado/
+!dados/dataset_unificado/final/
+!dados/dataset_unificado/final/dataset_final_treino_v1.csv
+
+# python/cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# claude code
+.claude/
+.claude*
+
+# ambiente virtual
+.venv/
+venv/
+
+# arquivos temporários de editor
+*.swp
+
+# Frontend / Next.js
+web/.next/
+web/node_modules/
+web/out/
+web/dist/
+web/.turbo/
+web/.vercel/
+
+# dados brutos dos datasets acadêmicos
+dados/pipeline_datasets_academicos/raw/**
+!dados/pipeline_datasets_academicos/raw/
+!dados/pipeline_datasets_academicos/raw/**/
+!dados/pipeline_datasets_academicos/raw/**/.gitkeep
