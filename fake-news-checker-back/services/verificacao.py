@@ -8,10 +8,13 @@
 #   - Lista o histórico e calcula o resumo estatístico
 # ==============================================================================
 
+import json
+
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from db_models.verificacao import Verificacao
 from services.classificador import classificar_texto
+from services.busca_web import buscar_fontes
 
 
 # Abaixo deste nível de confiança, o resultado é tratado como INCONCLUSIVO.
@@ -36,6 +39,8 @@ def criar_verificacao(
     db: Session, usuario_id: int, texto: str, tipo: str = "texto"
 ) -> Verificacao:
     """Classifica o texto, aplica a regra de confiança e salva no histórico."""
+    fontes = buscar_fontes(texto)
+
     resultado_ml = classificar_texto(texto)
 
     resultado = _mapear_resultado(
@@ -49,6 +54,7 @@ def criar_verificacao(
         resultado=resultado,
         confianca=resultado_ml["confianca"],
         modelo_ativo="sim" if resultado_ml["modelo_ativo"] else "nao",
+        fontes_json=json.dumps(fontes, ensure_ascii=False) if fontes else None,
     )
     db.add(verificacao)
     db.commit()
