@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Bell, ChevronDown, Crown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Bell, ChevronDown, Crown, LogOut } from "lucide-react";
 import { Sidebar, type AppPage } from "./components/Sidebar";
 import { HomePage } from "./components/HomePage";
 import { HistoryPage } from "./components/HistoryPage";
@@ -8,7 +8,12 @@ import { SettingsPage } from "./components/SettingsPage";
 import { LandingPage } from "./components/LandingPage";
 import { ProcessingPage } from "./components/ProcessingPage";
 import { VerdictPage } from "./components/VerdictPage";
+import { LoginPage } from "./components/LoginPage";
+import { RegisterPage } from "./components/RegisterPage";
+import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
 import { postCheck, mapApiToResult } from "./services/api";
+import { apiCriarVerificacao, mapResultado } from "./services/verificacoes";
+import { useAuth } from "./contexts/AuthContext";
 
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
 
@@ -29,7 +34,7 @@ interface Verification {
   confidence?: number;
 }
 
-type FullPage = "landing" | "processing" | "verdict" | AppPage;
+type FullPage = "landing" | "processing" | "verdict" | "login" | "register" | "forgot-password" | AppPage;
 
 const VERIFICATION_STEPS = [
   { id: 1, label: "Recebendo as informações" },
@@ -52,6 +57,8 @@ const PAGE_TITLES: Record<AppPage, string> = {
   plan: "Plano",
   settings: "Configurações",
 };
+
+const APP_PAGES: AppPage[] = ["home", "history", "results", "plan", "settings"];
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -76,6 +83,8 @@ function PlaceholderPage({ title }: { title: string }) {
 }
 
 export default function App() {
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+
   const [currentPage, setCurrentPage] = useState<FullPage>("landing");
   const [verifications, setVerifications] = useState<Verification[]>([]);
   const [verdictResult, setVerdictResult] = useState<ResultType>("nao_verificavel");
@@ -84,8 +93,20 @@ export default function App() {
   const [verdictType, setVerdictType] = useState<"text" | "link" | "image">("text");
   const [verdictTimestamp, setVerdictTimestamp] = useState<Date>(new Date());
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const reqIdRef = useRef(0);
+
+  // Auto-navigate when auth state resolves
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated && currentPage === "landing") {
+      setCurrentPage("home");
+    }
+    if (!isAuthenticated && APP_PAGES.includes(currentPage as AppPage)) {
+      setCurrentPage("login");
+    }
+  }, [isAuthenticated, isLoading]);
 
   const handleSubmit = async (value: string, attachmentType: "text" | "link" | "image" = "text") => {
     const ts = new Date();
@@ -109,7 +130,6 @@ export default function App() {
 
     const myId = ++reqIdRef.current;
 
-    // API call with timeout
     const API_TIMEOUT_MS = 8000;
     const t = setTimeout(() => {
       if (reqIdRef.current === myId) {
@@ -121,11 +141,20 @@ export default function App() {
       }
     }, API_TIMEOUT_MS);
 
-    postCheck(value)
-      .then((apiData) => {
+    // Usuário autenticado: salva no banco (classificação + histórico em um endpoint)
+    // Usuário não autenticado: apenas classifica via /predict/
+    const apiCall = (token && isAuthenticated)
+      ? apiCriarVerificacao(token, value, attachmentType).then((data) => {
+          const result = mapResultado(data.resultado);
+          const confPct = `${(data.confianca * 100).toFixed(1)}%`;
+          return { result, details: `Confiança: ${confPct}` };
+        })
+      : postCheck(value).then(mapApiToResult);
+
+    apiCall
+      .then((mapped) => {
         if (reqIdRef.current !== myId) return;
         clearTimeout(t);
-        const mapped = mapApiToResult(apiData);
         const conf = CONFIDENCE_BY_RESULT[mapped.result];
         setVerdictResult(mapped.result);
         setVerdictDetails(mapped.details);
@@ -143,7 +172,6 @@ export default function App() {
         );
       });
 
-    // Step animation → then show verdict
     await runStepAnimation(newVerification.id, VERIFICATION_STEPS.length);
     setCurrentPage("verdict");
   };
@@ -159,21 +187,51 @@ export default function App() {
     }
   };
 
-  const handleLandingSubmit = (value: string, type: "text" | "link" | "image") => {
-    handleSubmit(value, type);
-  };
-
   const handleNewVerification = () => {
     setActiveVerificationId(null);
     setCurrentPage("home");
   };
 
+  const handleLogout = () => {
+    setShowUserMenu(false);
+    logout();
+    setCurrentPage("landing");
+  };
+
+  // Auth pages
+  if (currentPage === "login") {
+    return (
+      <LoginPage
+        onGoToRegister={() => setCurrentPage("register")}
+        onGoToForgotPassword={() => setCurrentPage("forgot-password")}
+        onLoginSuccess={() => setCurrentPage("home")}
+      />
+    );
+  }
+
+  if (currentPage === "register") {
+    return (
+      <RegisterPage
+        onGoToLogin={() => setCurrentPage("login")}
+        onRegisterSuccess={() => setCurrentPage("home")}
+      />
+    );
+  }
+
+  if (currentPage === "forgot-password") {
+    return (
+      <ForgotPasswordPage
+        onGoToLogin={() => setCurrentPage("login")}
+      />
+    );
+  }
+
   // Full-page states (no sidebar)
   if (currentPage === "landing") {
     return (
       <LandingPage
-        onEnter={() => setCurrentPage("home")}
-        onSubmit={handleLandingSubmit}
+        onEnter={() => setCurrentPage("login")}
+        onSubmit={(value, type) => handleSubmit(value, type)}
       />
     );
   }
@@ -206,6 +264,15 @@ export default function App() {
 
   // Authenticated sidebar layout
   const appPage = currentPage as AppPage;
+
+  // User initials
+  const initials = user?.nome
+    ? user.nome
+        .split(" ")
+        .slice(0, 2)
+        .map((n) => n[0].toUpperCase())
+        .join("")
+    : "?";
 
   return (
     <div
@@ -268,40 +335,108 @@ export default function App() {
             <Bell size={18} />
           </button>
 
-          <button
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "4px 8px",
-              borderRadius: "24px",
-              border: "1px solid var(--m3-outline)",
-              cursor: "pointer",
-              backgroundColor: "transparent",
-              color: "var(--m3-on-surface)",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-          >
-            <div
+          {/* User menu */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowUserMenu((v) => !v)}
               style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                fontSize: "12px",
-                fontWeight: 600,
-                backgroundColor: "var(--m3-primary-container)",
-                color: "var(--m3-primary)",
+                gap: "8px",
+                padding: "4px 8px",
+                borderRadius: "24px",
+                border: "1px solid var(--m3-outline)",
+                cursor: "pointer",
+                backgroundColor: "transparent",
+                color: "var(--m3-on-surface)",
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
             >
-              LM
-            </div>
-            <span style={{ fontSize: "13px", fontWeight: 500 }}>Lucas Martins</span>
-            <ChevronDown size={14} style={{ color: "var(--m3-on-surface-variant)" }} />
-          </button>
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  backgroundColor: "var(--m3-primary-container)",
+                  color: "var(--m3-primary)",
+                }}
+              >
+                {initials}
+              </div>
+              <span style={{ fontSize: "13px", fontWeight: 500 }}>
+                {user?.nome ?? "Usuário"}
+              </span>
+              <ChevronDown size={14} style={{ color: "var(--m3-on-surface-variant)" }} />
+            </button>
+
+            {showUserMenu && (
+              <>
+                {/* Backdrop */}
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                  onClick={() => setShowUserMenu(false)}
+                />
+                {/* Dropdown */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    zIndex: 50,
+                    minWidth: "200px",
+                    borderRadius: "14px",
+                    border: "1px solid var(--m3-outline)",
+                    backgroundColor: "var(--m3-surface-container)",
+                    padding: "8px",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      marginBottom: "4px",
+                      borderBottom: "1px solid var(--m3-outline)",
+                    }}
+                  >
+                    <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)", margin: 0 }}>
+                      {user?.nome}
+                    </p>
+                    <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", margin: 0 }}>
+                      {user?.email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      border: "none",
+                      backgroundColor: "transparent",
+                      cursor: "pointer",
+                      color: "#ef4444",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.1)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                  >
+                    <LogOut size={15} />
+                    Sair
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </header>
 
         {/* Page Content */}
@@ -312,7 +447,7 @@ export default function App() {
               onSubmit={handleSubmit}
             />
           )}
-          {appPage === "history" && <HistoryPage verifications={verifications} />}
+          {appPage === "history" && <HistoryPage />}
           {appPage === "results" && <ResultsPage />}
           {appPage === "plan" && <PlaceholderPage title={PAGE_TITLES.plan} />}
           {appPage === "settings" && <SettingsPage />}

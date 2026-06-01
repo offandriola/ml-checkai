@@ -54,6 +54,8 @@ services:
     volumes:
       - ./fake-news-checker-front:/app
       - /app/node_modules
+    environment:
+      - BACKEND_URL=http://backend:8000
     depends_on:
       backend:
         condition: service_healthy

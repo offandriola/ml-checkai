@@ -119,7 +119,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],       # TCC: aberto. Produção: ["https://meusite.com"]
     allow_credentials=False,   # SEGURANÇA: False com origins=* (RFC 6454)
-    allow_methods=["GET", "POST"],  # SEGURANÇA: apenas métodos necessários
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],  # SEGURANÇA: headers explícitos
 )
 
@@ -133,7 +133,7 @@ app.add_middleware(
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1"] if API_DEBUG else ["*"], # Em prod, substitua "*" pelo seu domínio real
+    allowed_hosts=["*"],  # TCC: aberto. Em produção, liste apenas o domínio real.
 )
 
 # ==============================================================================
