@@ -11,7 +11,7 @@
 # O serviço detecta e carrega automaticamente.
 # ==============================================================================
 
-import random
+import hashlib
 import logging
 from pathlib import Path
 
@@ -160,13 +160,17 @@ def classificar_texto(texto: str) -> dict:
 
     else:
         # ------------------------------------------------------------------
-        # Classificação MOCK (modelo não disponível)
+        # Classificação MOCK (modelo não disponível) — determinística por texto
         # ------------------------------------------------------------------
-        classificacao = random.choice(["VERDADEIRO", "FALSO"])  # nosec B311
-        confianca = round(random.uniform(0.5, 0.95), 2)         # nosec B311
+        digest = hashlib.sha256(texto.encode("utf-8")).hexdigest()
+        valor = int(digest[:8], 16)
+        classificacao = "VERDADEIRO" if valor % 2 == 0 else "FALSO"
+        confianca = round(0.55 + (valor % 40) / 100, 2)
 
         logger.debug(
-            "Classificação mock gerada: %s (%.2f)", classificacao, confianca
+            "Classificação mock (determinística) gerada: %s (%.2f)",
+            classificacao,
+            confianca,
         )
 
         return {

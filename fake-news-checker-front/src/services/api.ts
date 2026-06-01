@@ -1,40 +1,64 @@
-export type ApiWire = { classificacao?: string; confianca?: number } | null;
+import type { FonteInfo } from "./verificacoes";
+import { mapResultado } from "./verificacoes";
+
 export type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
 
-const CHECK_API_URL =
-  import.meta.env.VITE_CHECK_API_URL?.toString() || "/predict/";
+export interface VerificarPublicoApi {
+  texto_verificado: string;
+  tipo: string;
+  resultado: "REAL" | "FALSO" | "INCONCLUSIVO";
+  confianca: number;
+  modelo_ativo: boolean;
+  fontes: FonteInfo[];
+}
 
-export async function postCheck(texto: string, timeoutMs = 8000): Promise<ApiWire> {
+const VERIFICAR_API_URL =
+  import.meta.env.VITE_VERIFICAR_API_URL?.toString() || "/api/v1/verificar";
+
+export async function postVerificar(
+  texto: string,
+  tipo: "texto" | "link" | "imagem" = "texto",
+  timeoutMs = 90000
+): Promise<VerificarPublicoApi | null> {
   const controller = new AbortController();
   const to = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(CHECK_API_URL, {
+    const res = await fetch(VERIFICAR_API_URL, {
       method: "POST",
       headers: { accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ texto }),
+      body: JSON.stringify({ texto, tipo }),
       signal: controller.signal,
     });
     const data = await res.json().catch(() => null);
-    console.log("[api] status:", res.status, "data:", data);
     if (!res.ok) return null;
-    return data;
+    return data as VerificarPublicoApi;
   } catch (e) {
-    console.error("[api] erro:", e);
+    console.error("[api] erro na verificação:", e);
     return null;
   } finally {
     clearTimeout(to);
   }
 }
 
-export function mapApiToResult(api: ApiWire): { result: ResultType; details: string } {
-  if (!api || typeof api !== "object") {
-    return { result: "nao_verificavel", details: "Não foi possível verificar" };
+export function mapVerificarToResult(api: VerificarPublicoApi | null): {
+  result: ResultType;
+  details: string;
+  confidence: number;
+  fontes: FonteInfo[];
+} {
+  if (!api) {
+    return {
+      result: "nao_verificavel",
+      details: "Não foi possível verificar",
+      confidence: 0,
+      fontes: [],
+    };
   }
-  const classe = (api.classificacao ?? "").toString().trim().toLowerCase();
-  const conf = typeof api.confianca === "number" ? api.confianca : undefined;
-  const confPct = conf != null ? `${(conf * 100).toFixed(1)}%` : null;
-
-  if (classe.includes("verd")) return { result: "verdadeira", details: confPct ? `Confiança: ${confPct}` : "Confiança indisponível" };
-  if (classe.includes("fals")) return { result: "falsa", details: confPct ? `Confiança: ${confPct}` : "Confiança indisponível" };
-  return { result: "nao_verificavel", details: "Não foi possível verificar" };
+  const conf = Math.round(api.confianca * 100);
+  return {
+    result: mapResultado(api.resultado),
+    details: `Confiança: ${conf}%`,
+    confidence: conf,
+    fontes: api.fontes ?? [],
+  };
 }

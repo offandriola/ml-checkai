@@ -9,13 +9,21 @@
 # ==============================================================================
 
 import json
+import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from config import EXTRAIR_ARTIGOS_MAX
 from db_models.verificacao import Verificacao
+from models.schemas import VerificacaoResponse
 from services.classificador import classificar_texto
 from services.busca_web import buscar_fontes
+from services.concordancia_fontes import CONFIANCA_ALINHAMENTO_FRACO, reconciliar_com_fontes
 from services.extrator_artigos import extrair_conteudo_multiplos
+
+
+logger = logging.getLogger(__name__)
 
 
 # Abaixo deste nível de confiança, o resultado é tratado como INCONCLUSIVO.
@@ -36,40 +44,82 @@ def _mapear_resultado(classificacao: str, confianca: float) -> str:
     return "INCONCLUSIVO"  # cobre o caso "ERRO" do classificador
 
 
-def criar_verificacao(
-    db: Session, usuario_id: int, texto: str, tipo: str = "texto"
-) -> Verificacao:
-    """Classifica o texto, aplica a regra de confiança e salva no histórico."""
-    fontes = buscar_fontes(texto)
-
+def _enriquecer_fontes_com_artigos(fontes: list[dict]) -> None:
+    """Opcional: baixa páginas completas (lento). Snippets da Serper bastam no fluxo rápido."""
+    if EXTRAIR_ARTIGOS_MAX <= 0 or not fontes:
+        return
     urls = [f["url"] for f in fontes if f.get("url")]
-    artigos_extraidos = extrair_conteudo_multiplos(urls, max_fontes=3)
-
+    artigos_extraidos = extrair_conteudo_multiplos(
+        urls, max_fontes=min(EXTRAIR_ARTIGOS_MAX, 3)
+    )
     artigos_por_url = {a["url"]: a for a in artigos_extraidos}
     for fonte in fontes:
         artigo = artigos_por_url.get(fonte.get("url", ""))
         if artigo:
             fonte["texto_extraido"] = artigo.get("resumo", "")
 
-    resultado_ml = classificar_texto(texto)
 
-    resultado = _mapear_resultado(
-        resultado_ml["classificacao"], resultado_ml["confianca"]
+def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
+    """
+    Executa busca web, classificação ML e mapeamento de resultado.
+
+    Usado pela verificação pública (landing) e pelo histórico autenticado.
+    """
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fut_fontes = pool.submit(buscar_fontes, texto)
+        fut_ml = pool.submit(classificar_texto, texto)
+        fontes = fut_fontes.result()
+        resultado_ml = fut_ml.result()
+
+    _enriquecer_fontes_com_artigos(fontes)
+
+    classificacao, confianca, _ = reconciliar_com_fontes(
+        texto,
+        resultado_ml["classificacao"],
+        resultado_ml["confianca"],
+        fontes,
     )
+
+    resultado = _mapear_resultado(classificacao, confianca)
+    if resultado == "INCONCLUSIVO" and confianca < CONFIANCA_ALINHAMENTO_FRACO:
+        confianca = CONFIANCA_ALINHAMENTO_FRACO
+
+    return {
+        "texto_verificado": texto,
+        "tipo": tipo,
+        "resultado": resultado,
+        "confianca": confianca,
+        "modelo_ativo": "sim" if resultado_ml["modelo_ativo"] else "nao",
+        "fontes": fontes,
+    }
+
+
+def criar_verificacao(
+    db: Session, usuario_id: int, texto: str, tipo: str = "texto"
+) -> Verificacao:
+    """Classifica o texto, aplica a regra de confiança e salva no histórico."""
+    dados = executar_verificacao(texto, tipo)
 
     verificacao = Verificacao(
         usuario_id=usuario_id,
-        texto_verificado=texto,
-        tipo=tipo,
-        resultado=resultado,
-        confianca=resultado_ml["confianca"],
-        modelo_ativo="sim" if resultado_ml["modelo_ativo"] else "nao",
-        fontes_json=json.dumps(fontes, ensure_ascii=False) if fontes else None,
+        texto_verificado=dados["texto_verificado"],
+        tipo=dados["tipo"],
+        resultado=dados["resultado"],
+        confianca=dados["confianca"],
+        modelo_ativo=dados["modelo_ativo"],
+        fontes_json=json.dumps(dados["fontes"], ensure_ascii=False)
+        if dados["fontes"]
+        else None,
     )
     db.add(verificacao)
     db.commit()
     db.refresh(verificacao)
     return verificacao
+
+
+def verificacao_para_response(verificacao: Verificacao) -> VerificacaoResponse:
+    """Serializa o ORM com fontes_json → list[FonteInfo]."""
+    return VerificacaoResponse.model_validate(verificacao)
 
 
 def listar_verificacoes(

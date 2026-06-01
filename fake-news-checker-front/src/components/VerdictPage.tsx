@@ -95,7 +95,7 @@ function ConfidenceGauge({ value, color }: { value: number; color: string }) {
             width: `${value}%`,
             borderRadius: "3px",
             backgroundColor: color,
-            transition: "width 1s ease",
+            transition: "width 0.35s ease",
           }}
         />
       </div>
@@ -382,7 +382,7 @@ export function VerdictPage({
                   Evidências insuficientes
                 </p>
                 <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", lineHeight: 1.5 }}>
-                  Não foram encontradas fontes suficientes para sustentar uma conclusão definitiva sobre a política mencionada.
+                  Não foram encontradas fontes suficientes para sustentar uma conclusão definitiva sobre a afirmação analisada.
                 </p>
               </div>
             </div>

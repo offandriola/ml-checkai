@@ -353,6 +353,19 @@ class VerificacaoCreateRequest(BaseModel):
     )
 
 
+class VerificarPublicoResponse(BaseModel):
+    """Resultado de verificação sem autenticação (landing page)."""
+
+    texto_verificado: str
+    tipo: str = Field(default="texto")
+    resultado: str = Field(description="REAL, FALSO ou INCONCLUSIVO")
+    confianca: float = Field(ge=0.0, le=1.0)
+    modelo_ativo: bool = Field(
+        description="True se o modelo ML real foi usado na classificação",
+    )
+    fontes: list[FonteInfo] = Field(default_factory=list)
+
+
 class VerificacaoResponse(BaseModel):
     """Representa uma verificação no histórico."""
 

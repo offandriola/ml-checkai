@@ -15,6 +15,7 @@ interface ProcessingPageProps {
 
 export function ProcessingPage({ steps, currentStepIndex, content, onCancel }: ProcessingPageProps) {
   const completedCount = steps.filter((s) => s.completed).length;
+  const allStepsDone = completedCount === steps.length && steps.length > 0;
   const progressPercent = Math.round((completedCount / steps.length) * 100);
 
   return (
@@ -76,7 +77,9 @@ export function ProcessingPage({ steps, currentStepIndex, content, onCancel }: P
               lineHeight: 1.5,
             }}
           >
-            O CheckAI está processando a consulta e buscando evidências relevantes.
+            {allStepsDone
+              ? "Consolidando o veredito com as fontes encontradas. Isso pode levar mais alguns segundos."
+              : "O CheckAI está processando a consulta e buscando evidências relevantes."}
           </p>
 
           {/* Processing card */}

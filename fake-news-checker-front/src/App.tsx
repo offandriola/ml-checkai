@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { Sidebar, type AppPage } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { HomePage } from "./components/HomePage";
@@ -11,8 +12,12 @@ import { VerdictPage } from "./components/VerdictPage";
 import { LoginPage } from "./components/LoginPage";
 import { RegisterPage } from "./components/RegisterPage";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
-import { postCheck, mapApiToResult } from "./services/api";
-import { apiCriarVerificacao, mapResultado, type FonteInfo } from "./services/verificacoes";
+import { postVerificar, mapVerificarToResult } from "./services/api";
+import {
+  apiCriarVerificacao,
+  mapVerificacaoApiItem,
+  type FonteInfo,
+} from "./services/verificacoes";
 import { useAuth } from "./contexts/AuthContext";
 
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
@@ -88,6 +93,7 @@ export default function App() {
   const [verdictTimestamp, setVerdictTimestamp] = useState<Date>(new Date());
   const [verdictFontes, setVerdictFontes] = useState<FonteInfo[]>([]);
   const [verdictConfidence, setVerdictConfidence] = useState<number>(0);
+  const [verdictReady, setVerdictReady] = useState(false);
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -118,72 +124,72 @@ export default function App() {
     setVerdictContent(value);
     setVerdictType(attachmentType);
     setVerdictTimestamp(ts);
-    setVerdictResult("nao_verificavel");
-    setVerdictDetails("Não foi possível verificar");
-    setVerdictFontes([]);
-    setVerdictConfidence(0);
+    setVerdictReady(false);
     setVerifications(prev => [...prev, newVerification]);
     setActiveVerificationId(newVerification.id);
     setCurrentPage("processing");
 
+    void runStepAnimation(newVerification.id, VERIFICATION_STEPS.length);
+
     const myId = ++reqIdRef.current;
 
-    const API_TIMEOUT_MS = 15000;
-    const t = setTimeout(() => {
-      if (reqIdRef.current === myId) {
-        setVerdictResult("nao_verificavel");
-        setVerdictDetails("Tempo limite excedido");
-        setVerdictConfidence(0);
-        setVerifications(prev =>
-          prev.map(v => v.id === newVerification.id ? { ...v, result: "nao_verificavel", confidence: 0 } : v)
-        );
+    const tipoApi =
+      attachmentType === "text" ? "texto" : attachmentType === "image" ? "imagem" : "link";
+
+    const fetchResult = async (): Promise<{
+      result: ResultType;
+      details: string;
+      confidence: number;
+      fontes: FonteInfo[];
+    }> => {
+      if (token && isAuthenticated) {
+        try {
+          const data = await apiCriarVerificacao(token, value, attachmentType);
+          return mapVerificacaoApiItem(data);
+        } catch (err) {
+          console.warn(
+            "[checkai] verificação autenticada falhou; usando rota pública",
+            err
+          );
+        }
       }
-    }, API_TIMEOUT_MS);
+      const api = await postVerificar(value, tipoApi);
+      return mapVerificarToResult(api);
+    };
 
-    const apiCall = (token && isAuthenticated)
-      ? apiCriarVerificacao(token, value, attachmentType).then((data) => {
-          const result = mapResultado(data.resultado);
-          const conf = Math.round(data.confianca * 100);
-          const fontes = data.fontes ?? [];
-          return { result, details: `Confiança: ${conf}%`, confidence: conf, fontes };
-        })
-      : postCheck(value).then((api) => {
-          const mapped = mapApiToResult(api);
-          const conf = api && typeof api.confianca === "number" ? Math.round(api.confianca * 100) : 0;
-          return { ...mapped, confidence: conf, fontes: [] as FonteInfo[] };
-        });
+    const applyResult = (mapped: {
+      result: ResultType;
+      details: string;
+      confidence: number;
+      fontes: FonteInfo[];
+    }) => {
+      setVerdictResult(mapped.result);
+      setVerdictDetails(mapped.details);
+      setVerdictFontes(mapped.fontes);
+      setVerdictConfidence(mapped.confidence);
+      setVerifications(prev =>
+        prev.map(v =>
+          v.id === newVerification.id
+            ? { ...v, result: mapped.result, confidence: mapped.confidence }
+            : v
+        )
+      );
+    };
 
-    apiCall
-      .then((mapped) => {
-        if (reqIdRef.current !== myId) return;
-        clearTimeout(t);
-        setVerdictResult(mapped.result);
-        setVerdictDetails(mapped.details);
-        setVerdictFontes(mapped.fontes);
-        setVerdictConfidence(mapped.confidence);
-        setVerifications(prev =>
-          prev.map(v => v.id === newVerification.id ? { ...v, result: mapped.result, confidence: mapped.confidence } : v)
-        );
-      })
-      .catch(() => {
-        if (reqIdRef.current !== myId) return;
-        clearTimeout(t);
-        setVerdictResult("nao_verificavel");
-        setVerdictDetails("Não foi possível verificar");
-        setVerdictFontes([]);
-        setVerdictConfidence(0);
-        setVerifications(prev =>
-          prev.map(v => v.id === newVerification.id ? { ...v, result: "nao_verificavel", confidence: 0 } : v)
-        );
-      });
+    const mapped = await fetchResult();
 
-    await runStepAnimation(newVerification.id, VERIFICATION_STEPS.length);
+    if (reqIdRef.current !== myId) return;
+
+    flushSync(() => {
+      applyResult(mapped);
+      setVerdictReady(true);
+    });
     setCurrentPage("verdict");
   };
 
   const runStepAnimation = async (verificationId: string, totalSteps: number) => {
     for (let i = 0; i < totalSteps; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 700));
       setVerifications(prev => prev.map(v =>
         v.id === verificationId
           ? { ...v, currentStepIndex: i, steps: v.steps.map((s, idx) => ({ ...s, completed: idx <= i })) }
@@ -246,9 +252,22 @@ export default function App() {
       );
     }
 
+    if (currentPage === "verdict" && !verdictReady) {
+      const activeV = verifications.find(v => v.id === activeVerificationId);
+      return (
+        <ProcessingPage
+          steps={activeV?.steps ?? VERIFICATION_STEPS.map(s => ({ ...s, completed: false }))}
+          currentStepIndex={activeV?.currentStepIndex ?? 0}
+          content={verdictContent}
+          onCancel={handleNewVerification}
+        />
+      );
+    }
+
     if (currentPage === "verdict") {
       return (
         <VerdictPage
+          key={`${activeVerificationId}-${verdictConfidence}-${verdictResult}`}
           result={verdictResult}
           confidence={verdictConfidence}
           content={verdictContent}

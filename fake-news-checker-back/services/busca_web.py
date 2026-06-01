@@ -6,7 +6,11 @@
 # sem interromper o fluxo principal de classificação.
 # ==============================================================================
 
+import json
 import logging
+import re
+import unicodedata
+from functools import lru_cache
 from urllib.parse import urlparse
 
 import requests
@@ -20,18 +24,16 @@ _URL_SERPER = "https://google.serper.dev/search"
 _TIMEOUT_SEGUNDOS = 10
 
 
-def buscar_fontes(query: str, n: int = 5) -> list[dict]:
-    """
-    Busca fontes relevantes na web para uma afirmação via Serper.dev.
+def _normalizar_query(query: str) -> str:
+    texto = query.lower().strip()
+    texto = unicodedata.normalize("NFD", texto)
+    texto = "".join(c for c in texto if unicodedata.category(c) != "Mn")
+    texto = re.sub(r"\s+", " ", texto)
+    return texto
 
-    Parâmetros:
-        query: Texto da afirmação a ser pesquisada.
-        n: Número máximo de resultados a retornar.
 
-    Retorna:
-        Lista de dicts com: titulo, url, snippet, fonte.
-        Retorna [] em caso de chave ausente ou qualquer erro de rede/API.
-    """
+def _consultar_serper(query: str, n: int) -> list[dict]:
+    """Chamada HTTP à API Serper (sem cache)."""
     if not SERPER_API_KEY:
         logger.warning(
             "SERPER_API_KEY não configurada — busca web desabilitada. "
@@ -67,5 +69,37 @@ def buscar_fontes(query: str, n: int = 5) -> list[dict]:
             "fonte": display,
         })
 
-    logger.info("Busca web retornou %d fontes para a query", len(fontes))
     return fontes
+
+
+@lru_cache(maxsize=512)
+def _buscar_fontes_cache(chave: str, n: int) -> str:
+    """
+    Cache em memória por texto normalizado — mesma frase → mesmas fontes.
+    Retorna JSON para permitir uso com lru_cache (lista não é hashable).
+    """
+    fontes = _consultar_serper(chave, n)
+    logger.info("Busca web (cache miss) — %d fontes para chave=%.60s", len(fontes), chave)
+    return json.dumps(fontes, ensure_ascii=False)
+
+
+def buscar_fontes(query: str, n: int = 5) -> list[dict]:
+    """
+    Busca fontes relevantes na web para uma afirmação via Serper.dev.
+
+    A mesma consulta (após normalização) reutiliza o resultado em cache,
+    evitando vereditos diferentes para textos idênticos.
+    """
+    chave = _normalizar_query(query)
+    if not chave:
+        return []
+
+    payload = _buscar_fontes_cache(chave, n)
+    fontes = json.loads(payload)
+    logger.info("Busca web retornou %d fontes (chave normalizada)", len(fontes))
+    return fontes
+
+
+def limpar_cache_fontes() -> None:
+    """Útil em testes ou após mudança de configuração."""
+    _buscar_fontes_cache.cache_clear()

@@ -5,34 +5,25 @@
 # usuário autenticado. Todas exigem token JWT válido.
 # ==============================================================================
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 from database import get_db
 from db_models.user import User
 from models.schemas import (
+    ListagemVerificacoesResponse,
+    ResumoResponse,
     VerificacaoCreateRequest,
     VerificacaoResponse,
-    ResumoResponse,
 )
 from services.verificacao import (
+    buscar_verificacao_por_id,
+    calcular_resumo,
     criar_verificacao,
     listar_verificacoes,
-    calcular_resumo,
+    verificacao_para_response,
 )
 from utils.dependencies import get_usuario_atual
-from models.schemas import (
-    VerificacaoCreateRequest,
-    VerificacaoResponse,
-    ResumoResponse,
-    ListagemVerificacoesResponse,
-)
-from services.verificacao import (
-    criar_verificacao,
-    listar_verificacoes,
-    calcular_resumo,
-    buscar_verificacao_por_id,
-)
 
 
 router = APIRouter(
@@ -54,7 +45,8 @@ async def criar(
     db: Session = Depends(get_db),
 ) -> VerificacaoResponse:
     """Executa a verificação e a registra no histórico do usuário autenticado."""
-    return criar_verificacao(db, usuario_atual.id, dados.texto, dados.tipo)
+    verificacao = criar_verificacao(db, usuario_atual.id, dados.texto, dados.tipo)
+    return verificacao_para_response(verificacao)
 
 
 @router.get(
@@ -142,4 +134,4 @@ async def detalhe(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Verificação não encontrada.",
         )
-    return verificacao
+    return verificacao_para_response(verificacao)

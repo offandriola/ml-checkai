@@ -43,6 +43,23 @@ export function mapResultado(resultado: "REAL" | "FALSO" | "INCONCLUSIVO"): Resu
   return "nao_verificavel";
 }
 
+export function mapVerificacaoApiItem(data: VerificacaoApiItem): {
+  result: ResultType;
+  details: string;
+  confidence: number;
+  fontes: FonteInfo[];
+} {
+  const raw = typeof data.confianca === "number" ? data.confianca : 0;
+  let conf = Math.round(raw * 100);
+  if (data.resultado === "INCONCLUSIVO" && conf === 0) conf = 55;
+  return {
+    result: mapResultado(data.resultado),
+    details: `Confiança: ${conf}%`,
+    confidence: conf,
+    fontes: data.fontes ?? [],
+  };
+}
+
 // Converte tipo do frontend para o backend
 function mapTipo(tipo: "text" | "link" | "image"): string {
   if (tipo === "text") return "texto";
@@ -61,17 +78,25 @@ async function handleResponse<T>(res: Response): Promise<T> {
 export async function apiCriarVerificacao(
   token: string,
   texto: string,
-  tipo: "text" | "link" | "image"
+  tipo: "text" | "link" | "image",
+  timeoutMs = 90000
 ): Promise<VerificacaoApiItem> {
-  const res = await fetch(BASE, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ texto, tipo: mapTipo(tipo) }),
-  });
-  return handleResponse<VerificacaoApiItem>(res);
+  const controller = new AbortController();
+  const to = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(BASE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ texto, tipo: mapTipo(tipo) }),
+      signal: controller.signal,
+    });
+    return handleResponse<VerificacaoApiItem>(res);
+  } finally {
+    clearTimeout(to);
+  }
 }
 
 export async function apiListarVerificacoes(

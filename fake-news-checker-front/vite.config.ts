@@ -60,10 +60,6 @@
       open: true,
       // TODO: remover
       proxy: {
-        "/predict": {
-          target: backendUrl,
-          changeOrigin: true,
-        },
         "/api": {
           target: backendUrl,
           changeOrigin: true,

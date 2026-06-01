@@ -41,12 +41,15 @@ API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
 API_PORT: int = int(os.getenv("API_PORT", "8000"))
 API_DEBUG: bool = os.getenv("API_DEBUG", "true").lower() == "true"
 
+# Quantas URLs enriquecer com Trafilatura (0 = só snippet da Serper, mais rápido)
+EXTRAIR_ARTIGOS_MAX: int = int(os.getenv("EXTRAIR_ARTIGOS_MAX", "0"))
+
 
 # ------------------------------------------------------------------------------
 # Configuração do JWT (Autenticação)
 # ------------------------------------------------------------------------------
 
-JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "chave_insegura_trocar")
+JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY") or "chave_insegura_trocar"
 JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRACAO_MINUTOS: int = int(os.getenv("JWT_EXPIRACAO_MINUTOS", "60"))
 

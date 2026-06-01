@@ -36,8 +36,9 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from config import API_TITULO, API_DESCRICAO, API_VERSAO, API_DEBUG
-from routes import health, coleta, dados, classificador, auth, verificacao, dashboard
+from routes import health, coleta, dados, classificador, auth, verificacao, verificar, dashboard
 from services.classificador import carregar_modelo
+from utils.db_migrate import aplicar_migracoes
 
 # ==============================================================================
 # Configuração de Logging
@@ -70,6 +71,11 @@ async def lifespan(app: FastAPI):
         logger.info("  Documentação: http://localhost:8000/docs")
     logger.info("  Modo: %s", "DEBUG" if API_DEBUG else "PRODUÇÃO")
     logger.info("=" * 60)
+
+    try:
+        aplicar_migracoes()
+    except Exception as exc:
+        logger.error("Falha ao aplicar migrações do banco: %s", exc)
 
     # Tenta carregar o modelo de classificação
     modelo_ok = carregar_modelo()
@@ -301,6 +307,7 @@ app.include_router(dados.router)
 app.include_router(classificador.router)
 app.include_router(auth.router)
 app.include_router(verificacao.router)
+app.include_router(verificar.router)
 app.include_router(dashboard.router)
 
 # ==============================================================================
