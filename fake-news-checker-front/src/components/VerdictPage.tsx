@@ -191,58 +191,6 @@ export function VerdictPage({
         flexDirection: "column",
       }}
     >
-      {/* Header */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "14px 32px",
-          borderBottom: "1px solid var(--m3-outline)",
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          backgroundColor: "var(--m3-surface)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "var(--m3-primary-container)",
-            }}
-          >
-            <ShieldCheck size={18} style={{ color: "var(--m3-primary)" }} />
-          </div>
-          <span style={{ fontSize: "16px", fontWeight: 500, color: "var(--m3-on-surface)" }}>
-            check<span style={{ color: "var(--m3-primary)" }}>ai</span>
-          </span>
-        </div>
-
-        {/* Back */}
-        <button
-          onClick={onNewVerification}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            background: "none",
-            border: "none",
-            color: "var(--m3-on-surface-variant)",
-            fontSize: "13px",
-            cursor: "pointer",
-          }}
-        >
-          <ArrowLeft size={15} />
-          Nova verificação
-        </button>
-      </header>
-
       {/* Page body */}
       <div style={{ flex: 1, overflowY: "auto", padding: "32px" }}>
         <div style={{ maxWidth: "860px", margin: "0 auto" }}>

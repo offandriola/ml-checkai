@@ -196,44 +196,6 @@ export function ForgotPasswordPage({ onGoToLogin }: ForgotPasswordPageProps) {
       className="dark min-h-screen flex flex-col"
       style={{ backgroundColor: "var(--m3-surface)" }}
     >
-      {/* Header */}
-      <header
-        className="sticky top-0 z-30 border-b"
-        style={{ backgroundColor: "var(--m3-surface)", borderColor: "var(--m3-outline)" }}
-      >
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "var(--m3-primary-container)" }}
-            >
-              <ShieldCheck size={20} style={{ color: "var(--m3-primary)" }} />
-            </div>
-            <span className="text-xl font-medium" style={{ color: "var(--m3-on-surface)" }}>
-              check<span style={{ color: "var(--m3-primary)" }}>ai</span>
-            </span>
-          </div>
-          <nav className="items-center hidden md:flex" style={{ gap: "2rem" }}>
-            {["Início", "Planos", "Sobre o CheckAI"].map((label) => (
-              <button
-                key={label}
-                className="py-1 text-sm font-medium"
-                style={{ color: "var(--m3-on-surface-variant)" }}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          <button
-            onClick={onGoToLogin}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-150 hover:bg-white/8"
-            style={{ color: "var(--m3-on-surface)", borderColor: "var(--m3-outline)" }}
-          >
-            Entrar
-          </button>
-        </div>
-      </header>
-
       {/* Main */}
       <main
         className="flex-1 flex items-center justify-center"
