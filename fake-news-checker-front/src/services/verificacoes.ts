@@ -75,6 +75,28 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
+export async function apiCriarVerificacaoImagem(
+  token: string,
+  file: File,
+  timeoutMs = 120000
+): Promise<VerificacaoApiItem> {
+  const controller = new AbortController();
+  const to = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const form = new FormData();
+    form.append("imagem", file);
+    const res = await fetch(`${BASE}/imagem`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+      signal: controller.signal,
+    });
+    return handleResponse<VerificacaoApiItem>(res);
+  } finally {
+    clearTimeout(to);
+  }
+}
+
 export async function apiCriarVerificacao(
   token: string,
   texto: string,

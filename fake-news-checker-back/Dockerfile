@@ -11,7 +11,7 @@ WORKDIR /app
 # 4. Instala as dependências
 # Copia apenas o requirements.txt primeiro para aproveitar o cache do Docker
 COPY requirements.txt .
-RUN apt-get update && apt-get install -y curl && \
+RUN apt-get update && apt-get install -y curl tesseract-ocr tesseract-ocr-por && \
     pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     apt-get clean && rm -rf /var/lib/apt/lists/*

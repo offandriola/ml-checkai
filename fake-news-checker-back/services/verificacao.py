@@ -20,7 +20,8 @@ from models.schemas import VerificacaoResponse
 from services.classificador import classificar_texto
 from services.busca_web import buscar_fontes
 from services.concordancia_fontes import CONFIANCA_ALINHAMENTO_FRACO, reconciliar_com_fontes
-from services.extrator_artigos import extrair_conteudo_multiplos
+from services.extrator_artigos import extrair_conteudo, extrair_conteudo_multiplos
+from services.analisador_imagem import extrair_texto_imagem, extrair_texto_imagem_bytes
 
 
 logger = logging.getLogger(__name__)
@@ -64,17 +65,42 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
     Executa busca web, classificação ML e mapeamento de resultado.
 
     Usado pela verificação pública (landing) e pelo histórico autenticado.
+    Para tipo="link", extrai o conteúdo da URL antes de classificar.
     """
+    texto_para_analisar = texto
+    if tipo == "link":
+        artigo = extrair_conteudo(texto)
+        if artigo and artigo.get("texto"):
+            texto_para_analisar = artigo["texto"]
+            logger.info("Link: extraídos %d chars de %s", len(texto_para_analisar), texto)
+        else:
+            logger.warning("Link: falha ao extrair conteúdo de %s — usando URL como texto", texto)
+    elif tipo == "imagem":
+        texto_ocr = extrair_texto_imagem(texto)
+        if texto_ocr:
+            texto_para_analisar = texto_ocr
+            logger.info("Imagem: OCR extraiu %d chars", len(texto_para_analisar))
+        else:
+            logger.warning("Imagem: OCR falhou — sem texto extraível na imagem")
+            texto_para_analisar = ""
+
+    # Label legível para salvar no histórico (evita gravar base64 no banco)
+    texto_legivel = (
+        "[Imagem enviada para análise]"
+        if tipo == "imagem" and texto.startswith("data:")
+        else texto
+    )
+
     with ThreadPoolExecutor(max_workers=2) as pool:
-        fut_fontes = pool.submit(buscar_fontes, texto)
-        fut_ml = pool.submit(classificar_texto, texto)
+        fut_fontes = pool.submit(buscar_fontes, texto_para_analisar)
+        fut_ml = pool.submit(classificar_texto, texto_para_analisar)
         fontes = fut_fontes.result()
         resultado_ml = fut_ml.result()
 
     _enriquecer_fontes_com_artigos(fontes)
 
     classificacao, confianca, _ = reconciliar_com_fontes(
-        texto,
+        texto_para_analisar,
         resultado_ml["classificacao"],
         resultado_ml["confianca"],
         fontes,
@@ -85,13 +111,81 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
         confianca = CONFIANCA_ALINHAMENTO_FRACO
 
     return {
-        "texto_verificado": texto,
+        "texto_verificado": texto_legivel,
         "tipo": tipo,
         "resultado": resultado,
         "confianca": confianca,
         "modelo_ativo": "sim" if resultado_ml["modelo_ativo"] else "nao",
         "fontes": fontes,
     }
+
+
+def executar_verificacao_imagem(conteudo: bytes) -> dict:
+    """
+    Recebe bytes de uma imagem, extrai texto via OCR e classifica.
+    Usado pelo endpoint multipart /verificacoes/imagem.
+    """
+    texto_ocr = extrair_texto_imagem_bytes(conteudo)
+    if not texto_ocr:
+        return {
+            "texto_verificado": "[Imagem enviada para análise]",
+            "tipo": "imagem",
+            "resultado": "INCONCLUSIVO",
+            "confianca": CONFIANCA_ALINHAMENTO_FRACO,
+            "modelo_ativo": "nao",
+            "fontes": [],
+        }
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fut_fontes = pool.submit(buscar_fontes, texto_ocr)
+        fut_ml = pool.submit(classificar_texto, texto_ocr)
+        fontes = fut_fontes.result()
+        resultado_ml = fut_ml.result()
+
+    _enriquecer_fontes_com_artigos(fontes)
+
+    classificacao, confianca, _ = reconciliar_com_fontes(
+        texto_ocr,
+        resultado_ml["classificacao"],
+        resultado_ml["confianca"],
+        fontes,
+    )
+
+    resultado = _mapear_resultado(classificacao, confianca)
+    if resultado == "INCONCLUSIVO" and confianca < CONFIANCA_ALINHAMENTO_FRACO:
+        confianca = CONFIANCA_ALINHAMENTO_FRACO
+
+    return {
+        "texto_verificado": "[Imagem enviada para análise]",
+        "tipo": "imagem",
+        "resultado": resultado,
+        "confianca": confianca,
+        "modelo_ativo": "sim" if resultado_ml["modelo_ativo"] else "nao",
+        "fontes": fontes,
+    }
+
+
+def criar_verificacao_por_imagem(
+    db: Session, usuario_id: int, conteudo: bytes
+) -> Verificacao:
+    """Processa imagem via OCR, classifica e salva no histórico."""
+    dados = executar_verificacao_imagem(conteudo)
+
+    verificacao = Verificacao(
+        usuario_id=usuario_id,
+        texto_verificado=dados["texto_verificado"],
+        tipo=dados["tipo"],
+        resultado=dados["resultado"],
+        confianca=dados["confianca"],
+        modelo_ativo=dados["modelo_ativo"],
+        fontes_json=json.dumps(dados["fontes"], ensure_ascii=False)
+        if dados["fontes"]
+        else None,
+    )
+    db.add(verificacao)
+    db.commit()
+    db.refresh(verificacao)
+    return verificacao
 
 
 def criar_verificacao(
