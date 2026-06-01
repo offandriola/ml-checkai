@@ -11,7 +11,9 @@
 #   - Sufixo "Info"     → Modelo auxiliar para composição
 # ==============================================================================
 
-from pydantic import BaseModel, Field
+import json
+
+from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 
 
@@ -322,6 +324,15 @@ class TokenResponse(BaseModel):
 # ==============================================================================
 
 
+class FonteInfo(BaseModel):
+    """Fonte web recuperada para embasar o veredito de verificação."""
+
+    titulo: str = Field(description="Título da página/artigo")
+    url: str = Field(description="URL completa da fonte")
+    snippet: str = Field(description="Trecho relevante do conteúdo")
+    fonte: str = Field(description="Domínio da fonte (ex: g1.globo.com)")
+
+
 class VerificacaoCreateRequest(BaseModel):
     """Entrada para criar uma verificação."""
 
@@ -346,9 +357,35 @@ class VerificacaoResponse(BaseModel):
     tipo: str
     resultado: str = Field(description="REAL, FALSO ou INCONCLUSIVO")
     confianca: float
+    fontes: list[FonteInfo] = Field(default_factory=list, description="Fontes web recuperadas")
     criado_em: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def deserializar_fontes(cls, values):
+        """Converte fontes_json (Text do ORM) para list[FonteInfo]."""
+        if hasattr(values, "__dict__"):
+            # Lendo de objeto ORM SQLAlchemy
+            fontes_json = getattr(values, "fontes_json", None)
+            if fontes_json:
+                try:
+                    values.__dict__["fontes"] = json.loads(fontes_json)
+                except (json.JSONDecodeError, TypeError):
+                    values.__dict__["fontes"] = []
+            else:
+                values.__dict__["fontes"] = []
+        elif isinstance(values, dict) and "fontes_json" in values and "fontes" not in values:
+            fontes_json = values.get("fontes_json")
+            if fontes_json:
+                try:
+                    values["fontes"] = json.loads(fontes_json)
+                except (json.JSONDecodeError, TypeError):
+                    values["fontes"] = []
+            else:
+                values["fontes"] = []
+        return values
 
 
 class ResumoResponse(BaseModel):
