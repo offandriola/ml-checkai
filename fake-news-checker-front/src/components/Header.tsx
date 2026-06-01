@@ -87,7 +87,7 @@ export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderPro
             className="py-1 text-sm font-medium transition-colors hover:text-[var(--m3-on-surface)]"
             style={{ color: "var(--m3-on-surface-variant)" }}
           >
-            Sobre o CheckAI
+            Sobre
           </button>
         </nav>
       )}
