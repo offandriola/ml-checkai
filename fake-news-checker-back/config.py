@@ -82,6 +82,13 @@ GOOGLE_FACTCHECK_API_KEY: str | None = os.getenv("GOOGLE_FACTCHECK_API_KEY")
 
 
 # ------------------------------------------------------------------------------
+# Chave da API Serper.dev (Busca Web em Tempo Real)
+# ------------------------------------------------------------------------------
+
+SERPER_API_KEY: str | None = os.getenv("SERPER_API_KEY")
+
+
+# ------------------------------------------------------------------------------
 # Caminhos das Pastas de Dados
 # ------------------------------------------------------------------------------
 # Todos os pipelines seguem a estrutura: dados/<pipeline>/<camada>/
