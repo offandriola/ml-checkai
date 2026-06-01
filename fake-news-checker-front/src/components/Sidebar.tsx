@@ -37,7 +37,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       style={{
         width: "220px",
         minWidth: "220px",
-        height: "100vh",
+        height: "calc(100vh - 64px)",
         position: "sticky",
         top: 0,
         display: "flex",
@@ -47,45 +47,6 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         overflowY: "auto",
       }}
     >
-      {/* Logo */}
-      <div style={{ padding: "20px 16px 12px" }}>
-        <button
-          onClick={() => onNavigate("home")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "4px",
-          }}
-        >
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "var(--m3-primary-container)",
-            }}
-          >
-            <ShieldCheck size={18} style={{ color: "var(--m3-primary)" }} />
-          </div>
-          <span
-            style={{
-              fontSize: "16px",
-              fontWeight: 500,
-              color: "var(--m3-on-surface)",
-            }}
-          >
-            check<span style={{ color: "var(--m3-primary)" }}>ai</span>
-          </span>
-        </button>
-      </div>
-
       {/* Nav */}
       <nav style={{ flex: 1, padding: "8px 8px 0" }}>
         {NAV_ITEMS.map(({ page, label, icon: Icon }) => {

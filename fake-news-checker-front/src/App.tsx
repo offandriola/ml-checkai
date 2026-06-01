@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ChevronDown, Crown, LogOut } from "lucide-react";
 import { Sidebar, type AppPage } from "./components/Sidebar";
+import { Header } from "./components/Header";
 import { HomePage } from "./components/HomePage";
 import { HistoryPage } from "./components/HistoryPage";
 import { ResultsPage } from "./components/ResultsPage";
@@ -192,265 +192,109 @@ export default function App() {
     setCurrentPage("home");
   };
 
-  const handleLogout = () => {
-    setShowUserMenu(false);
-    logout();
-    setCurrentPage("landing");
+  const renderContent = () => {
+    if (currentPage === "login") {
+      return (
+        <LoginPage
+          onGoToRegister={() => setCurrentPage("register")}
+          onGoToForgotPassword={() => setCurrentPage("forgot-password")}
+          onLoginSuccess={() => setCurrentPage("home")}
+        />
+      );
+    }
+
+    if (currentPage === "register") {
+      return (
+        <RegisterPage
+          onGoToLogin={() => setCurrentPage("login")}
+          onRegisterSuccess={() => setCurrentPage("home")}
+        />
+      );
+    }
+
+    if (currentPage === "forgot-password") {
+      return (
+        <ForgotPasswordPage
+          onGoToLogin={() => setCurrentPage("login")}
+        />
+      );
+    }
+
+    if (currentPage === "landing") {
+      return (
+        <LandingPage
+          onEnter={() => setCurrentPage("login")}
+          onSubmit={(value, type) => handleSubmit(value, type)}
+        />
+      );
+    }
+
+    if (currentPage === "processing") {
+      const activeV = verifications.find(v => v.id === activeVerificationId);
+      return (
+        <ProcessingPage
+          steps={activeV?.steps ?? VERIFICATION_STEPS.map(s => ({ ...s, completed: false }))}
+          currentStepIndex={activeV?.currentStepIndex ?? 0}
+          content={verdictContent}
+          onCancel={handleNewVerification}
+        />
+      );
+    }
+
+    if (currentPage === "verdict") {
+      return (
+        <VerdictPage
+          result={verdictResult}
+          confidence={CONFIDENCE_BY_RESULT[verdictResult]}
+          content={verdictContent}
+          details={verdictDetails}
+          type={verdictType}
+          timestamp={verdictTimestamp}
+          onNewVerification={handleNewVerification}
+        />
+      );
+    }
+
+    const appPage = currentPage as AppPage;
+    return (
+      <div style={{ flex: 1, overflowY: "auto", padding: "32px 32px 120px" }}>
+        {appPage === "home" && (
+          <HomePage
+            verifications={verifications.filter(v => v.id === activeVerificationId)}
+            onSubmit={handleSubmit}
+          />
+        )}
+        {appPage === "history" && <HistoryPage />}
+        {appPage === "results" && <ResultsPage />}
+        {appPage === "plan" && <PlaceholderPage title={PAGE_TITLES.plan} />}
+        {appPage === "settings" && <SettingsPage />}
+      </div>
+    );
   };
-
-  // Auth pages
-  if (currentPage === "login") {
-    return (
-      <LoginPage
-        onGoToRegister={() => setCurrentPage("register")}
-        onGoToForgotPassword={() => setCurrentPage("forgot-password")}
-        onLoginSuccess={() => setCurrentPage("home")}
-      />
-    );
-  }
-
-  if (currentPage === "register") {
-    return (
-      <RegisterPage
-        onGoToLogin={() => setCurrentPage("login")}
-        onRegisterSuccess={() => setCurrentPage("home")}
-      />
-    );
-  }
-
-  if (currentPage === "forgot-password") {
-    return (
-      <ForgotPasswordPage
-        onGoToLogin={() => setCurrentPage("login")}
-      />
-    );
-  }
-
-  // Full-page states (no sidebar)
-  if (currentPage === "landing") {
-    return (
-      <LandingPage
-        onEnter={() => setCurrentPage("login")}
-        onSubmit={(value, type) => handleSubmit(value, type)}
-      />
-    );
-  }
-
-  if (currentPage === "processing") {
-    const activeV = verifications.find(v => v.id === activeVerificationId);
-    return (
-      <ProcessingPage
-        steps={activeV?.steps ?? VERIFICATION_STEPS.map(s => ({ ...s, completed: false }))}
-        currentStepIndex={activeV?.currentStepIndex ?? 0}
-        content={verdictContent}
-        onCancel={handleNewVerification}
-      />
-    );
-  }
-
-  if (currentPage === "verdict") {
-    return (
-      <VerdictPage
-        result={verdictResult}
-        confidence={CONFIDENCE_BY_RESULT[verdictResult]}
-        content={verdictContent}
-        details={verdictDetails}
-        type={verdictType}
-        timestamp={verdictTimestamp}
-        onNewVerification={handleNewVerification}
-      />
-    );
-  }
-
-  // Authenticated sidebar layout
-  const appPage = currentPage as AppPage;
-
-  // User initials
-  const initials = user?.nome
-    ? user.nome
-        .split(" ")
-        .slice(0, 2)
-        .map((n) => n[0].toUpperCase())
-        .join("")
-    : "?";
 
   return (
     <div
       className="dark"
       style={{
         display: "flex",
+        flexDirection: "column",
         minHeight: "100vh",
         backgroundColor: "var(--m3-surface)",
       }}
     >
-      <Sidebar currentPage={appPage} onNavigate={(p) => setCurrentPage(p)} />
+      <Header
+        showNav={currentPage === "landing"}
+        onLoginClick={() => setCurrentPage("login")}
+        onLogoClick={() => setCurrentPage(isAuthenticated ? "home" : "landing")}
+      />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        {/* Top Header */}
-        <header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 30,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: "12px",
-            padding: "12px 24px",
-            borderBottom: "1px solid var(--m3-outline)",
-            backgroundColor: "var(--m3-surface)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              padding: "4px 10px",
-              borderRadius: "20px",
-              backgroundColor: "var(--m3-primary-container)",
-              border: "1px solid rgba(255,55,132,0.3)",
-            }}
-          >
-            <Crown size={12} style={{ color: "var(--m3-primary)" }} />
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--m3-primary)" }}>Pro</span>
-          </div>
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        {isAuthenticated && APP_PAGES.includes(currentPage as AppPage) && (
+          <Sidebar currentPage={currentPage as AppPage} onNavigate={(p) => setCurrentPage(p)} />
+        )}
 
-          <button
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "none",
-              cursor: "pointer",
-              backgroundColor: "transparent",
-              color: "var(--m3-on-surface-variant)",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-          >
-            <Bell size={18} />
-          </button>
-
-          {/* User menu */}
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setShowUserMenu((v) => !v)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "4px 8px",
-                borderRadius: "24px",
-                border: "1px solid var(--m3-outline)",
-                cursor: "pointer",
-                backgroundColor: "transparent",
-                color: "var(--m3-on-surface)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-            >
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  backgroundColor: "var(--m3-primary-container)",
-                  color: "var(--m3-primary)",
-                }}
-              >
-                {initials}
-              </div>
-              <span style={{ fontSize: "13px", fontWeight: 500 }}>
-                {user?.nome ?? "Usuário"}
-              </span>
-              <ChevronDown size={14} style={{ color: "var(--m3-on-surface-variant)" }} />
-            </button>
-
-            {showUserMenu && (
-              <>
-                {/* Backdrop */}
-                <div
-                  style={{ position: "fixed", inset: 0, zIndex: 40 }}
-                  onClick={() => setShowUserMenu(false)}
-                />
-                {/* Dropdown */}
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "calc(100% + 8px)",
-                    right: 0,
-                    zIndex: 50,
-                    minWidth: "200px",
-                    borderRadius: "14px",
-                    border: "1px solid var(--m3-outline)",
-                    backgroundColor: "var(--m3-surface-container)",
-                    padding: "8px",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      marginBottom: "4px",
-                      borderBottom: "1px solid var(--m3-outline)",
-                    }}
-                  >
-                    <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)", margin: 0 }}>
-                      {user?.nome}
-                    </p>
-                    <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", margin: 0 }}>
-                      {user?.email}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "10px 12px",
-                      borderRadius: "8px",
-                      border: "none",
-                      backgroundColor: "transparent",
-                      cursor: "pointer",
-                      color: "#ef4444",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.1)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-                  >
-                    <LogOut size={15} />
-                    Sair
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "32px 32px 120px" }}>
-          {appPage === "home" && (
-            <HomePage
-              verifications={verifications.filter(v => v.id === activeVerificationId)}
-              onSubmit={handleSubmit}
-            />
-          )}
-          {appPage === "history" && <HistoryPage />}
-          {appPage === "results" && <ResultsPage />}
-          {appPage === "plan" && <PlaceholderPage title={PAGE_TITLES.plan} />}
-          {appPage === "settings" && <SettingsPage />}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflowY: "auto" }}>
+          {renderContent()}
         </div>
       </div>
     </div>

@@ -27,36 +27,6 @@ export function ProcessingPage({ steps, currentStepIndex, content, onCancel }: P
         flexDirection: "column",
       }}
     >
-      {/* Header */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 32px",
-          borderBottom: "1px solid var(--m3-outline)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "var(--m3-primary-container)",
-            }}
-          >
-            <ShieldCheck size={18} style={{ color: "var(--m3-primary)" }} />
-          </div>
-          <span style={{ fontSize: "16px", fontWeight: 500, color: "var(--m3-on-surface)" }}>
-            check<span style={{ color: "var(--m3-primary)" }}>ai</span>
-          </span>
-        </div>
-      </header>
-
       {/* Centered content */}
       <div
         style={{
