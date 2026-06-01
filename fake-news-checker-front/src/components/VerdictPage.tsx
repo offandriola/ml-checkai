@@ -9,7 +9,9 @@ import {
   ArrowRight,
   RefreshCw,
   AlertTriangle,
+  Globe,
 } from "lucide-react";
+import type { FonteInfo } from "../services/verificacoes";
 
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
 
@@ -20,6 +22,7 @@ interface VerdictPageProps {
   details: string;
   type: "text" | "link" | "image";
   timestamp: Date;
+  fontes: FonteInfo[];
   onNewVerification: () => void;
 }
 
@@ -69,57 +72,6 @@ const VERDICT_CONFIG: Record<
     Icon: HelpCircle,
     badgeLabel: "Inconclusivo",
   },
-};
-
-const MOCK_EVIDENCE: Record<ResultType, { name: string; url: string; snippet: string; initial: string }[]> = {
-  verdadeira: [
-    {
-      name: "Governo Federal",
-      url: "gov.br",
-      snippet:
-        "Publicação oficial confirma a isenção de imposto de renda para trabalhadores com salário de até R$ 5 mil.",
-      initial: "G",
-    },
-    {
-      name: "Agência Brasil",
-      url: "agenciabrasil.gov.br",
-      snippet:
-        "A Agência Brasil confirma que o projeto foi aprovado e seguiu para sanção presidencial.",
-      initial: "A",
-    },
-  ],
-  falsa: [
-    {
-      name: "Agência Brasil",
-      url: "agenciabrasil.gov.br",
-      snippet:
-        "Não há processos oficiais sobre a isenção de imposto para quem ganha esse valor no momento.",
-      initial: "A",
-    },
-    {
-      name: "Senado Federal",
-      url: "senado.leg.br",
-      snippet:
-        "Não foi identificada tramitação de projeto com esse teor no sistema legislativo federal.",
-      initial: "S",
-    },
-  ],
-  nao_verificavel: [
-    {
-      name: "Agência Brasil",
-      url: "agenciabrasil.gov.br",
-      snippet:
-        "Não foram encontradas fontes suficientes para sustentar uma conclusão sobre essa informação.",
-      initial: "A",
-    },
-    {
-      name: "G1 – Globo",
-      url: "g1.globo.com",
-      snippet:
-        "Algumas fontes abordaram temas relacionados, mas nenhuma confirmou diretamente a alegação política.",
-      initial: "G",
-    },
-  ],
 };
 
 function ConfidenceGauge({ value, color }: { value: number; color: string }) {
@@ -172,10 +124,10 @@ export function VerdictPage({
   details,
   type,
   timestamp,
+  fontes,
   onNewVerification,
 }: VerdictPageProps) {
   const cfg = VERDICT_CONFIG[result];
-  const evidence = MOCK_EVIDENCE[result];
   const { Icon } = cfg;
 
   const typeLabel = type === "text" ? "Texto" : type === "link" ? "Link" : "Imagem";
@@ -463,84 +415,90 @@ export function VerdictPage({
                   letterSpacing: "0.05em",
                 }}
               >
-                EVIDÊNCIAS PRINCIPAIS
+                FONTES CONSULTADAS
               </p>
-              <button
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  background: "none",
-                  border: "none",
-                  color: "var(--m3-primary)",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
-              >
-                Ver todas as evidências
-                <ArrowRight size={13} />
-              </button>
+              {fontes.length > 0 && (
+                <span style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>
+                  {fontes.length} fonte{fontes.length !== 1 ? "s" : ""} encontrada{fontes.length !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
 
-            <div style={{ display: "flex", gap: "0", flexWrap: "wrap" }}>
-              {evidence.map((ev, i) => (
-                <div
-                  key={ev.name}
-                  style={{
-                    flex: "1 1 260px",
-                    padding: "16px 20px",
-                    borderRight:
-                      i < evidence.length - 1 ? "1px solid var(--m3-outline)" : "none",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-                    <div
-                      style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "8px",
-                        backgroundColor: "rgba(255,55,132,0.12)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "14px",
-                        fontWeight: 700,
-                        color: "var(--m3-primary)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {ev.initial}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
-                        {ev.name}
-                      </p>
-                      <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>{ev.url}</p>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", lineHeight: 1.5, marginBottom: "10px" }}>
-                    {ev.snippet}
-                  </p>
-                  <button
+            {fontes.length === 0 ? (
+              <div style={{ padding: "32px 20px", textAlign: "center" }}>
+                <Globe size={24} style={{ color: "var(--m3-on-surface-variant)", marginBottom: "8px" }} />
+                <p style={{ fontSize: "14px", color: "var(--m3-on-surface-variant)" }}>
+                  Nenhuma fonte foi encontrada para esta verificação.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: "0", flexWrap: "wrap" }}>
+                {fontes.map((fonte, i) => (
+                  <div
+                    key={`${fonte.url}-${i}`}
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      background: "none",
-                      border: "none",
-                      color: "var(--m3-primary)",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      padding: 0,
+                      flex: "1 1 260px",
+                      padding: "16px 20px",
+                      borderRight:
+                        i < fontes.length - 1 ? "1px solid var(--m3-outline)" : "none",
+                      borderBottom: fontes.length > 2 && i < fontes.length - 2 ? "1px solid var(--m3-outline)" : "none",
                     }}
                   >
-                    Acessar fonte
-                    <ExternalLink size={11} />
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "8px",
+                          backgroundColor: "rgba(255,55,132,0.12)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          color: "var(--m3-primary)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {fonte.fonte.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{
+                          fontSize: "14px", fontWeight: 600, color: "var(--m3-on-surface)",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {fonte.titulo}
+                        </p>
+                        <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>{fonte.fonte}</p>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", lineHeight: 1.5, marginBottom: "10px" }}>
+                      {fonte.snippet}
+                    </p>
+                    <a
+                      href={fonte.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        background: "none",
+                        border: "none",
+                        color: "var(--m3-primary)",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        padding: 0,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Acessar fonte
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}

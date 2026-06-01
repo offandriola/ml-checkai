@@ -2,13 +2,30 @@ import type { ResultType } from "./api";
 
 const BASE = "/api/v1/verificacoes";
 
+export interface FonteInfo {
+  titulo: string;
+  url: string;
+  snippet: string;
+  fonte: string;
+  texto_extraido?: string | null;
+}
+
 export interface VerificacaoApiItem {
   id: number;
   texto_verificado: string;
   tipo: string;
   resultado: "REAL" | "FALSO" | "INCONCLUSIVO";
   confianca: number;
+  fontes: FonteInfo[];
   criado_em: string;
+}
+
+export interface ResumoApiResponse {
+  total_verificacoes: number;
+  total_reais: number;
+  total_falsas: number;
+  total_inconclusivas: number;
+  percentual_reais: number;
 }
 
 export interface ListagemResponse {
@@ -76,4 +93,11 @@ export async function apiListarVerificacoes(
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse<ListagemResponse>(res);
+}
+
+export async function apiObterResumo(token: string): Promise<ResumoApiResponse> {
+  const res = await fetch(`${BASE}/resumo`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse<ResumoApiResponse>(res);
 }

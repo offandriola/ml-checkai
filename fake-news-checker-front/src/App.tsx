@@ -12,7 +12,7 @@ import { LoginPage } from "./components/LoginPage";
 import { RegisterPage } from "./components/RegisterPage";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
 import { postCheck, mapApiToResult } from "./services/api";
-import { apiCriarVerificacao, mapResultado } from "./services/verificacoes";
+import { apiCriarVerificacao, mapResultado, type FonteInfo } from "./services/verificacoes";
 import { useAuth } from "./contexts/AuthContext";
 
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
@@ -43,12 +43,6 @@ const VERIFICATION_STEPS = [
   { id: 4, label: "Verificando as informações" },
   { id: 5, label: "Processo concluído" },
 ];
-
-const CONFIDENCE_BY_RESULT: Record<ResultType, number> = {
-  verdadeira: 82,
-  falsa: 87,
-  nao_verificavel: 45,
-};
 
 const PAGE_TITLES: Record<AppPage, string> = {
   home: "Nova verificação",
@@ -83,7 +77,7 @@ function PlaceholderPage({ title }: { title: string }) {
 }
 
 export default function App() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, token, isAuthenticated, isLoading, logout } = useAuth();
 
   const [currentPage, setCurrentPage] = useState<FullPage>("landing");
   const [verifications, setVerifications] = useState<Verification[]>([]);
@@ -92,6 +86,8 @@ export default function App() {
   const [verdictContent, setVerdictContent] = useState<string>("");
   const [verdictType, setVerdictType] = useState<"text" | "link" | "image">("text");
   const [verdictTimestamp, setVerdictTimestamp] = useState<Date>(new Date());
+  const [verdictFontes, setVerdictFontes] = useState<FonteInfo[]>([]);
+  const [verdictConfidence, setVerdictConfidence] = useState<number>(0);
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -124,42 +120,49 @@ export default function App() {
     setVerdictTimestamp(ts);
     setVerdictResult("nao_verificavel");
     setVerdictDetails("Não foi possível verificar");
+    setVerdictFontes([]);
+    setVerdictConfidence(0);
     setVerifications(prev => [...prev, newVerification]);
     setActiveVerificationId(newVerification.id);
     setCurrentPage("processing");
 
     const myId = ++reqIdRef.current;
 
-    const API_TIMEOUT_MS = 8000;
+    const API_TIMEOUT_MS = 15000;
     const t = setTimeout(() => {
       if (reqIdRef.current === myId) {
         setVerdictResult("nao_verificavel");
-        setVerdictDetails("Não foi possível verificar");
+        setVerdictDetails("Tempo limite excedido");
+        setVerdictConfidence(0);
         setVerifications(prev =>
-          prev.map(v => v.id === newVerification.id ? { ...v, result: "nao_verificavel", confidence: 45 } : v)
+          prev.map(v => v.id === newVerification.id ? { ...v, result: "nao_verificavel", confidence: 0 } : v)
         );
       }
     }, API_TIMEOUT_MS);
 
-    // Usuário autenticado: salva no banco (classificação + histórico em um endpoint)
-    // Usuário não autenticado: apenas classifica via /predict/
     const apiCall = (token && isAuthenticated)
       ? apiCriarVerificacao(token, value, attachmentType).then((data) => {
           const result = mapResultado(data.resultado);
-          const confPct = `${(data.confianca * 100).toFixed(1)}%`;
-          return { result, details: `Confiança: ${confPct}` };
+          const conf = Math.round(data.confianca * 100);
+          const fontes = data.fontes ?? [];
+          return { result, details: `Confiança: ${conf}%`, confidence: conf, fontes };
         })
-      : postCheck(value).then(mapApiToResult);
+      : postCheck(value).then((api) => {
+          const mapped = mapApiToResult(api);
+          const conf = api && typeof api.confianca === "number" ? Math.round(api.confianca * 100) : 0;
+          return { ...mapped, confidence: conf, fontes: [] as FonteInfo[] };
+        });
 
     apiCall
       .then((mapped) => {
         if (reqIdRef.current !== myId) return;
         clearTimeout(t);
-        const conf = CONFIDENCE_BY_RESULT[mapped.result];
         setVerdictResult(mapped.result);
         setVerdictDetails(mapped.details);
+        setVerdictFontes(mapped.fontes);
+        setVerdictConfidence(mapped.confidence);
         setVerifications(prev =>
-          prev.map(v => v.id === newVerification.id ? { ...v, result: mapped.result, confidence: conf } : v)
+          prev.map(v => v.id === newVerification.id ? { ...v, result: mapped.result, confidence: mapped.confidence } : v)
         );
       })
       .catch(() => {
@@ -167,8 +170,10 @@ export default function App() {
         clearTimeout(t);
         setVerdictResult("nao_verificavel");
         setVerdictDetails("Não foi possível verificar");
+        setVerdictFontes([]);
+        setVerdictConfidence(0);
         setVerifications(prev =>
-          prev.map(v => v.id === newVerification.id ? { ...v, result: "nao_verificavel", confidence: 45 } : v)
+          prev.map(v => v.id === newVerification.id ? { ...v, result: "nao_verificavel", confidence: 0 } : v)
         );
       });
 
@@ -245,11 +250,12 @@ export default function App() {
       return (
         <VerdictPage
           result={verdictResult}
-          confidence={CONFIDENCE_BY_RESULT[verdictResult]}
+          confidence={verdictConfidence}
           content={verdictContent}
           details={verdictDetails}
           type={verdictType}
           timestamp={verdictTimestamp}
+          fontes={verdictFontes}
           onNewVerification={handleNewVerification}
         />
       );

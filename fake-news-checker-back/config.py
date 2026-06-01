@@ -136,5 +136,10 @@ PIPELINES_RAW: dict[str, Path] = {
 # Modelo atual: baseline v2 balanced (acurácia 90.2%, ROC-AUC 97.1%)
 # ------------------------------------------------------------------------------
 
-DIR_MODELO = DIRETORIO_RAIZ / "modelos"
-CAMINHO_MODELO = DIR_MODELO / "baseline_tfidf_logreg_v2_balanced.joblib"
+_NOME_MODELO = "baseline_tfidf_svm_v4_balanced_2026-05-30_23-44-02.joblib"
+
+DIR_MODELO = Path(os.getenv(
+    "DIR_MODELO",
+    str(DIRETORIO_RAIZ / "fake-news-checker-model" / "modelos"),
+))
+CAMINHO_MODELO = DIR_MODELO / _NOME_MODELO

@@ -15,6 +15,7 @@ from sqlalchemy import or_
 from db_models.verificacao import Verificacao
 from services.classificador import classificar_texto
 from services.busca_web import buscar_fontes
+from services.extrator_artigos import extrair_conteudo_multiplos
 
 
 # Abaixo deste nível de confiança, o resultado é tratado como INCONCLUSIVO.
@@ -40,6 +41,15 @@ def criar_verificacao(
 ) -> Verificacao:
     """Classifica o texto, aplica a regra de confiança e salva no histórico."""
     fontes = buscar_fontes(texto)
+
+    urls = [f["url"] for f in fontes if f.get("url")]
+    artigos_extraidos = extrair_conteudo_multiplos(urls, max_fontes=3)
+
+    artigos_por_url = {a["url"]: a for a in artigos_extraidos}
+    for fonte in fontes:
+        artigo = artigos_por_url.get(fonte.get("url", ""))
+        if artigo:
+            fonte["texto_extraido"] = artigo.get("resumo", "")
 
     resultado_ml = classificar_texto(texto)
 

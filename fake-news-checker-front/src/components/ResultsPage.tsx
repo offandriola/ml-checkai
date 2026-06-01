@@ -1,47 +1,26 @@
-import { useState } from "react";
-import { TrendingUp, ChevronDown, ArrowRight, Calendar } from "lucide-react";
-
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const STATS = {
-  total: 128,
-  totalDelta: "+12 que o período anterior",
-  verdadeiras: 92,
-  verdadeirasPercent: 72,
-  falsas: 23,
-  falsasPercent: 18,
-  inconclusivas: 13,
-  inconclusivasPercent: 10,
-};
-
-const WEEKLY_BARS = [
-  { day: "Seg", total: 14, verdadeiras: 9, falsas: 3, inconclusivas: 2 },
-  { day: "Ter", total: 22, verdadeiras: 16, falsas: 4, inconclusivas: 2 },
-  { day: "Qua", total: 18, verdadeiras: 13, falsas: 3, inconclusivas: 2 },
-  { day: "Qui", total: 25, verdadeiras: 18, falsas: 5, inconclusivas: 2 },
-  { day: "Sex", total: 20, verdadeiras: 14, falsas: 4, inconclusivas: 2 },
-  { day: "Sáb", total: 16, verdadeiras: 11, falsas: 3, inconclusivas: 2 },
-  { day: "Dom", total: 13, verdadeiras: 11, falsas: 1, inconclusivas: 1 },
-];
-
-const RECENT_ITEMS = [
-  { content: "Bolsonaro anuncia nova isenção de imposto para quem ganha até...", result: "nao_verificavel" as const, confidence: 45 },
-  { content: "Pix terá cobrança de taxa para pessoas físicas a partir de julho.", result: "falsa" as const, confidence: 18 },
-  { content: "Vacina brasileira contra a dengue é aprovada pela Anvisa.", result: "verdadeira" as const, confidence: 92 },
-  { content: "INSS vai devolver automaticamente valores descontados indevidamente.", result: "verdadeira" as const, confidence: 88 },
-  { content: "O Banco Central lançou uma nova nota de R$ 200.", result: "falsa" as const, confidence: 15 },
-];
-
-const SOURCES = [
-  { name: "Exame Brasil", url: "exame.com", count: 34, icon: "E" },
-  { name: "Agência Brasil", url: "agenciabrasil.gov.br", count: 28, icon: "A" },
-  { name: "G1 – Globo", url: "g1.globo.com", count: 22, icon: "G" },
-  { name: "Folha de S.Paulo", url: "folha.uol.com.br", count: 18, icon: "F" },
-  { name: "UOL Notícias", url: "noticias.uol.com.br", count: 14, icon: "U" },
-  { name: "TRE / TSE", url: "tre.jus.br", count: 10, icon: "T" },
-];
+import { useState, useEffect } from "react";
+import { TrendingUp, ChevronDown, ArrowRight, Calendar, Loader2 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  apiObterResumo,
+  apiListarVerificacoes,
+  mapResultado,
+  type ResumoApiResponse,
+} from "../services/verificacoes";
 
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
+
+const WEEKLY_BARS = [
+  { day: "Seg", total: 0, verdadeiras: 0, falsas: 0, inconclusivas: 0 },
+  { day: "Ter", total: 0, verdadeiras: 0, falsas: 0, inconclusivas: 0 },
+  { day: "Qua", total: 0, verdadeiras: 0, falsas: 0, inconclusivas: 0 },
+  { day: "Qui", total: 0, verdadeiras: 0, falsas: 0, inconclusivas: 0 },
+  { day: "Sex", total: 0, verdadeiras: 0, falsas: 0, inconclusivas: 0 },
+  { day: "Sáb", total: 0, verdadeiras: 0, falsas: 0, inconclusivas: 0 },
+  { day: "Dom", total: 0, verdadeiras: 0, falsas: 0, inconclusivas: 0 },
+];
+
+const SOURCES: { name: string; url: string; count: number; icon: string }[] = [];
 
 const RESULT_CFG: Record<ResultType, { label: string; color: string }> = {
   verdadeira: { label: "Verdadeira", color: "#22c55e" },
@@ -139,7 +118,7 @@ function DonutChart() {
       ))}
       {/* Center label */}
       <text x={cx} y={cy - 8} textAnchor="middle" fill="var(--m3-on-surface)" fontSize="22" fontWeight="700">
-        {STATS.total}
+        {stats.total}
       </text>
       <text x={cx} y={cy + 12} textAnchor="middle" fill="var(--m3-on-surface-variant)" fontSize="10">
         verificações
@@ -212,7 +191,45 @@ function ResultBadgeMini({ result }: { result: ResultType }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ResultsPage() {
-  const [_period] = useState("04/05/2025 - 31/05/2025");
+  const { token } = useAuth();
+  const [resumo, setResumo] = useState<ResumoApiResponse | null>(null);
+  const [recentItems, setRecentItems] = useState<{ content: string; result: ResultType; confidence: number }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    Promise.all([
+      apiObterResumo(token).catch(() => null),
+      apiListarVerificacoes(token, { por_pagina: 5 }).catch(() => null),
+    ]).then(([resumoData, listData]) => {
+      if (resumoData) setResumo(resumoData);
+      if (listData) {
+        setRecentItems(
+          listData.itens.map((v) => ({
+            content: v.texto_verificado,
+            result: mapResultado(v.resultado),
+            confidence: Math.round(v.confianca * 100),
+          }))
+        );
+      }
+    }).finally(() => setIsLoading(false));
+  }, [token]);
+
+  const stats = resumo
+    ? {
+        total: resumo.total_verificacoes,
+        verdadeiras: resumo.total_reais,
+        verdadeirasPercent: resumo.total_verificacoes > 0 ? Math.round(resumo.total_reais / resumo.total_verificacoes * 100) : 0,
+        falsas: resumo.total_falsas,
+        falsasPercent: resumo.total_verificacoes > 0 ? Math.round(resumo.total_falsas / resumo.total_verificacoes * 100) : 0,
+        inconclusivas: resumo.total_inconclusivas,
+        inconclusivasPercent: resumo.total_verificacoes > 0 ? Math.round(resumo.total_inconclusivas / resumo.total_verificacoes * 100) : 0,
+      }
+    : { total: 0, verdadeiras: 0, verdadeirasPercent: 0, falsas: 0, falsasPercent: 0, inconclusivas: 0, inconclusivasPercent: 0 };
 
   return (
     <div style={{ maxWidth: "1100px" }}>
@@ -260,25 +277,25 @@ export function ResultsPage() {
       <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
         <StatCard
           label="Total de verificações"
-          value={STATS.total}
-          delta={STATS.totalDelta}
+          value={stats.total}
+          delta={stats.totalDelta}
         />
         <StatCard
           label="Verdadeiras"
-          value={STATS.verdadeiras}
-          sub={`(${STATS.verdadeirasPercent}%)`}
+          value={stats.verdadeiras}
+          sub={`(${stats.verdadeirasPercent}%)`}
           subColor="#22c55e"
         />
         <StatCard
           label="Falsas"
-          value={STATS.falsas}
-          sub={`(${STATS.falsasPercent}%)`}
+          value={stats.falsas}
+          sub={`(${stats.falsasPercent}%)`}
           subColor="#ef4444"
         />
         <StatCard
           label="Inconclusivas"
-          value={STATS.inconclusivas}
-          sub={`(${STATS.inconclusivasPercent}%)`}
+          value={stats.inconclusivas}
+          sub={`(${stats.inconclusivasPercent}%)`}
           subColor="#f59e0b"
         />
       </div>
@@ -302,9 +319,9 @@ export function ResultsPage() {
             <DonutChart />
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {[
-                { label: "Verdadeiras", value: STATS.verdadeiras, pct: STATS.verdadeirasPercent, color: "#22c55e" },
-                { label: "Falsas", value: STATS.falsas, pct: STATS.falsasPercent, color: "#ef4444" },
-                { label: "Inconclusivas", value: STATS.inconclusivas, pct: STATS.inconclusivasPercent, color: "#f59e0b" },
+                { label: "Verdadeiras", value: stats.verdadeiras, pct: stats.verdadeirasPercent, color: "#22c55e" },
+                { label: "Falsas", value: stats.falsas, pct: stats.falsasPercent, color: "#ef4444" },
+                { label: "Inconclusivas", value: stats.inconclusivas, pct: stats.inconclusivasPercent, color: "#f59e0b" },
               ].map((item) => (
                 <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <div
@@ -423,7 +440,13 @@ export function ResultsPage() {
               <ArrowRight size={13} />
             </button>
           </div>
-          {RECENT_ITEMS.map((item, i) => (
+          {recentItems.length === 0 ? (
+            <div style={{ padding: "24px 20px", textAlign: "center" }}>
+              <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)" }}>
+                Nenhuma verificação ainda.
+              </p>
+            </div>
+          ) : recentItems.map((item, i) => (
             <div
               key={i}
               style={{
@@ -431,7 +454,7 @@ export function ResultsPage() {
                 alignItems: "center",
                 gap: "12px",
                 padding: "12px 20px",
-                borderBottom: i < RECENT_ITEMS.length - 1 ? "1px solid var(--m3-outline)" : "none",
+                borderBottom: i < recentItems.length - 1 ? "1px solid var(--m3-outline)" : "none",
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -478,7 +501,13 @@ export function ResultsPage() {
               Fontes mais consultadas
             </p>
           </div>
-          {SOURCES.map((src, i) => {
+          {SOURCES.length === 0 ? (
+            <div style={{ padding: "24px 20px", textAlign: "center" }}>
+              <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)" }}>
+                As fontes aparecerão aqui conforme você fizer verificações.
+              </p>
+            </div>
+          ) : SOURCES.map((src, i) => {
             const maxCount = SOURCES[0].count;
             return (
               <div

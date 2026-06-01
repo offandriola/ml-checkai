@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import {
   FileText,
   Image,
@@ -15,7 +15,15 @@ import {
   HelpCircle,
   Newspaper,
   MessageSquare,
+  Loader2,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  apiObterResumo,
+  apiListarVerificacoes,
+  mapResultado,
+  type ResumoApiResponse,
+} from "../services/verificacoes";
 
 type TabType = "text" | "image" | "link";
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
@@ -40,14 +48,6 @@ interface HomePageProps {
   verifications: Verification[];
   onSubmit: (value: string, type: TabType) => void;
 }
-
-const MOCK_RECENT = [
-  { id: "m1", title: "Governo anuncia nova isenção de imposto para quem ganha R$ 5 mil por mês.", result: "nao_verificavel" as ResultType },
-  { id: "m2", title: "Vacina experimental causa infertilidade em mulheres.", result: "falsa" as ResultType },
-  { id: "m3", title: "Terremoto no Brasil foi provocado por...", result: "falsa" as ResultType },
-  { id: "m4", title: "Governo Federal não cumpriu lei de financiamento...", result: "falsa" as ResultType },
-  { id: "m5", title: "Água com limão em jejum cura câncer.", result: "nao_verificavel" as ResultType },
-];
 
 const RESULT_CONFIG = {
   verdadeira: { label: "Real", color: "#4caf50", bg: "rgba(76,175,80,0.15)" },
@@ -113,9 +113,37 @@ function DonutGauge({ percentage }: { percentage: number }) {
 }
 
 export function HomePage({ verifications, onSubmit }: HomePageProps) {
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("text");
   const [inputValue, setInputValue] = useState("");
+  const [resumo, setResumo] = useState<ResumoApiResponse | null>(null);
+  const [recentFromApi, setRecentFromApi] = useState<{ id: string; title: string; result: ResultType }[]>([]);
+  const [loadingResumo, setLoadingResumo] = useState(true);
   const maxLength = 5000;
+
+  useEffect(() => {
+    if (!token) {
+      setLoadingResumo(false);
+      return;
+    }
+
+    apiObterResumo(token)
+      .then(setResumo)
+      .catch(() => {})
+      .finally(() => setLoadingResumo(false));
+
+    apiListarVerificacoes(token, { por_pagina: 5 })
+      .then((data) => {
+        setRecentFromApi(
+          data.itens.map((v) => ({
+            id: String(v.id),
+            title: v.texto_verificado,
+            result: mapResultado(v.resultado),
+          }))
+        );
+      })
+      .catch(() => {});
+  }, [token]);
 
   const placeholder =
     activeTab === "link" ? "Cole um link para verificar..."
@@ -130,9 +158,9 @@ export function HomePage({ verifications, onSubmit }: HomePageProps) {
 
   const handleClear = () => setInputValue("");
 
-  const recentItems = verifications.length > 0
-    ? verifications.slice(-5).reverse().map(v => ({ id: v.id, title: v.content, result: v.result ?? "nao_verificavel" as ResultType }))
-    : MOCK_RECENT;
+  const recentItems = recentFromApi.length > 0
+    ? recentFromApi
+    : verifications.slice(-5).reverse().map(v => ({ id: v.id, title: v.content, result: v.result ?? "nao_verificavel" as ResultType }));
 
   return (
     <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
@@ -411,9 +439,9 @@ export function HomePage({ verifications, onSubmit }: HomePageProps) {
           }}
         >
           {[
-            { label: "verificações hoje", value: "12", icon: Clock },
-            { label: "plano atual", value: "Pro", icon: CheckCircle2 },
-            { label: "análises realizadas", value: "348", icon: BarChartIcon },
+            { label: "verificações realizadas", value: resumo ? String(resumo.total_verificacoes) : "—", icon: BarChartIcon },
+            { label: "reais", value: resumo ? String(resumo.total_reais) : "—", icon: CheckCircle2 },
+            { label: "falsas", value: resumo ? String(resumo.total_falsas) : "—", icon: XCircle },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Icon size={15} style={{ color: "var(--m3-on-surface-variant)" }} />
@@ -463,60 +491,70 @@ export function HomePage({ verifications, onSubmit }: HomePageProps) {
             </button>
           </div>
 
-          {recentItems.map((item, i) => (
-            <div
-              key={item.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "10px 16px",
-                borderBottom: i < recentItems.length - 1 ? "1px solid var(--m3-outline)" : "none",
-                cursor: "pointer",
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
+          {recentItems.length === 0 ? (
+            <div style={{ padding: "24px 16px", textAlign: "center" }}>
+              <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)" }}>
+                Nenhuma verificação ainda.
+              </p>
+            </div>
+          ) : (
+            <>
+              {recentItems.map((item, i) => (
+                <div
+                  key={item.id}
                   style={{
-                    fontSize: "12px",
-                    color: "var(--m3-on-surface)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    marginBottom: "3px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "10px 16px",
+                    borderBottom: i < recentItems.length - 1 ? "1px solid var(--m3-outline)" : "none",
+                    cursor: "pointer",
                   }}
                 >
-                  {item.title}
-                </p>
-                <ResultBadge result={item.result} />
-              </div>
-              <ChevronRight size={14} style={{ color: "var(--m3-on-surface-variant)", flexShrink: 0 }} />
-            </div>
-          ))}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--m3-on-surface)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        marginBottom: "3px",
+                      }}
+                    >
+                      {item.title}
+                    </p>
+                    <ResultBadge result={item.result} />
+                  </div>
+                  <ChevronRight size={14} style={{ color: "var(--m3-on-surface-variant)", flexShrink: 0 }} />
+                </div>
+              ))}
 
-          <div
-            style={{
-              padding: "10px 16px",
-              borderTop: "1px solid var(--m3-outline)",
-            }}
-          >
-            <button
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "12px",
-                color: "var(--m3-primary)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
-              Abrir todas as consultas
-              <ArrowRight size={13} />
-            </button>
-          </div>
+              <div
+                style={{
+                  padding: "10px 16px",
+                  borderTop: "1px solid var(--m3-outline)",
+                }}
+              >
+                <button
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "12px",
+                    color: "var(--m3-primary)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 500,
+                  }}
+                >
+                  Abrir todas as consultas
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Summary */}
@@ -532,33 +570,55 @@ export function HomePage({ verifications, onSubmit }: HomePageProps) {
             Seu resumo
           </p>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
-            <DonutGauge percentage={72} />
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div>
-                <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Verificações realizadas</p>
-                <p style={{ fontSize: "18px", fontWeight: 700, color: "var(--m3-on-surface)" }}>128</p>
-              </div>
-              <div>
-                <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Falsas</p>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "#f44336" }}>5 <span style={{ fontSize: "12px", fontWeight: 400, color: "var(--m3-on-surface-variant)" }}>(3%)</span></p>
-              </div>
+          {loadingResumo ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0", gap: "8px", color: "var(--m3-on-surface-variant)" }}>
+              <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
+              <span style={{ fontSize: "13px" }}>Carregando...</span>
             </div>
-          </div>
+          ) : resumo ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+                <DonutGauge percentage={Math.round(resumo.percentual_reais)} />
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div>
+                    <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Verificações realizadas</p>
+                    <p style={{ fontSize: "18px", fontWeight: 700, color: "var(--m3-on-surface)" }}>{resumo.total_verificacoes}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Falsas</p>
+                    <p style={{ fontSize: "16px", fontWeight: 700, color: "#f44336" }}>
+                      {resumo.total_falsas}
+                      {resumo.total_verificacoes > 0 && (
+                        <span style={{ fontSize: "12px", fontWeight: 400, color: "var(--m3-on-surface-variant)" }}>
+                          {" "}({Math.round(resumo.total_falsas / resumo.total_verificacoes * 100)}%)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: "10px",
-              backgroundColor: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--m3-outline)",
-            }}
-          >
-            <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)", marginBottom: "2px" }}>
-              Tempo médio por verificação
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: "10px",
+                  backgroundColor: "rgba(255,255,255,0.04)",
+                  border: "1px solid var(--m3-outline)",
+                }}
+              >
+                <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)", marginBottom: "2px" }}>
+                  Inconclusivas
+                </p>
+                <p style={{ fontSize: "16px", fontWeight: 700, color: "#f59e0b" }}>
+                  {resumo.total_inconclusivas}
+                </p>
+              </div>
+            </>
+          ) : (
+            <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", textAlign: "center", padding: "16px 0" }}>
+              Faça sua primeira verificação para ver seu resumo.
             </p>
-            <p style={{ fontSize: "16px", fontWeight: 700, color: "var(--m3-on-surface)" }}>1m 42s</p>
-          </div>
+          )}
         </div>
       </div>
     </div>

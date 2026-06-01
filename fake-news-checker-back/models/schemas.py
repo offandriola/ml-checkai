@@ -331,6 +331,10 @@ class FonteInfo(BaseModel):
     url: str = Field(description="URL completa da fonte")
     snippet: str = Field(description="Trecho relevante do conteúdo")
     fonte: str = Field(description="Domínio da fonte (ex: g1.globo.com)")
+    texto_extraido: str | None = Field(
+        default=None,
+        description="Resumo do conteúdo extraído do artigo (até 500 chars)",
+    )
 
 
 class VerificacaoCreateRequest(BaseModel):

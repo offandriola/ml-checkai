@@ -31,11 +31,13 @@ services:
       - "${API_PORT:-8000}:8000"
     volumes:
       - ./fake-news-checker-back:/app
+      - ./fake-news-checker-model/modelos:/modelos:ro
     env_file:
       - .env
     environment:
       DATABASE_URL: mysql+pymysql://${MYSQL_USER:-user}:${MYSQL_PASSWORD:-password}@db:3306/${MYSQL_DATABASE:-checkai}
       API_HOST: 0.0.0.0
+      DIR_MODELO: /modelos
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 15s
