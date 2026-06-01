@@ -3,6 +3,8 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
+  const backendUrl = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+
   export default defineConfig({
     plugins: [react()],
     resolve: {
@@ -58,10 +60,14 @@
       open: true,
       // TODO: remover
       proxy: {
-      "/predict": {
-        target: "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
+        "/predict": {
+          target: backendUrl,
+          changeOrigin: true,
+        },
+        "/api": {
+          target: backendUrl,
+          changeOrigin: true,
+        },
       },
 
     },
