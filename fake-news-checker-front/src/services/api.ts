@@ -1,4 +1,4 @@
-import type { FonteInfo } from "./verificacoes";
+import type { FonteInfo, NliVotos } from "./verificacoes";
 import { mapResultado } from "./verificacoes";
 
 export type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
@@ -10,6 +10,12 @@ export interface VerificarPublicoApi {
   confianca: number;
   modelo_ativo: boolean;
   fontes: FonteInfo[];
+  // campos NLI agregados (opcionais — chegam quando o backend está atualizado)
+  nli_resultado_agregado?: string | null;
+  nli_score_agregado?: number | null;
+  nli_votos?: NliVotos | null;
+  decisao_origem?: string | null;
+  justificativa_decisao?: string | null;
 }
 
 const VERIFICAR_API_URL =
@@ -45,6 +51,11 @@ export function mapVerificarToResult(api: VerificarPublicoApi | null): {
   details: string;
   confidence: number;
   fontes: FonteInfo[];
+  nliAgregado?: string | null;
+  nliScore?: number | null;
+  nliVotos?: NliVotos | null;
+  decisaoOrigem?: string | null;
+  justificativa?: string | null;
 } {
   if (!api) {
     return {
@@ -60,5 +71,10 @@ export function mapVerificarToResult(api: VerificarPublicoApi | null): {
     details: `Confiança: ${conf}%`,
     confidence: conf,
     fontes: api.fontes ?? [],
+    nliAgregado: api.nli_resultado_agregado,
+    nliScore: api.nli_score_agregado,
+    nliVotos: api.nli_votos,
+    decisaoOrigem: api.decisao_origem,
+    justificativa: api.justificativa_decisao,
   };
 }

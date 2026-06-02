@@ -335,6 +335,26 @@ class FonteInfo(BaseModel):
         default=None,
         description="Resumo do conteúdo extraído do artigo (até 500 chars)",
     )
+    nli_label: str | None = Field(
+        default=None,
+        description="Classificação NLI desta fonte: SUPPORTS, REFUTES ou NEUTRAL",
+    )
+    nli_score: float | None = Field(
+        default=None,
+        description="Score de confiança da classificação NLI (0.0 a 1.0)",
+    )
+    tipo_fonte: str | None = Field(
+        default=None,
+        description="Categoria da fonte: oficial, fact_checking, jornalistica, enciclopedia, desconhecida",
+    )
+    confiabilidade_fonte: str | None = Field(
+        default=None,
+        description="Nível de confiabilidade: alta, media, baixa ou muito_baixa",
+    )
+    peso_fonte: float | None = Field(
+        default=None,
+        description="Peso numérico de confiabilidade da fonte (0.0 a 1.0)",
+    )
 
 
 class VerificacaoCreateRequest(BaseModel):
@@ -364,6 +384,26 @@ class VerificarPublicoResponse(BaseModel):
         description="True se o modelo ML real foi usado na classificação",
     )
     fontes: list[FonteInfo] = Field(default_factory=list)
+    nli_resultado_agregado: str | None = Field(
+        default=None,
+        description="Veredito NLI agregado das fontes: SUPPORTS, REFUTES ou NEUTRAL",
+    )
+    nli_score_agregado: float | None = Field(
+        default=None,
+        description="Score médio do veredito NLI agregado (0.0 a 1.0)",
+    )
+    nli_votos: dict | None = Field(
+        default=None,
+        description="Contagem de votos NLI por categoria: {SUPPORTS, REFUTES, NEUTRAL}",
+    )
+    decisao_origem: str | None = Field(
+        default=None,
+        description="Origem da decisão final: fluxo_atual | nli_reforcou | nli_decidiu_inconclusivo",
+    )
+    justificativa_decisao: str | None = Field(
+        default=None,
+        description="Texto explicativo da regra de decisão aplicada",
+    )
 
 
 class VerificacaoResponse(BaseModel):
@@ -376,6 +416,26 @@ class VerificacaoResponse(BaseModel):
     confianca: float
     fontes: list[FonteInfo] = Field(default_factory=list, description="Fontes web recuperadas")
     criado_em: datetime
+    nli_resultado_agregado: str | None = Field(
+        default=None,
+        description="Veredito NLI agregado das fontes: SUPPORTS, REFUTES ou NEUTRAL",
+    )
+    nli_score_agregado: float | None = Field(
+        default=None,
+        description="Score médio do veredito NLI agregado (0.0 a 1.0)",
+    )
+    nli_votos: dict | None = Field(
+        default=None,
+        description="Contagem de votos NLI por categoria: {SUPPORTS, REFUTES, NEUTRAL}",
+    )
+    decisao_origem: str | None = Field(
+        default=None,
+        description="Origem da decisão final: fluxo_atual | nli_reforcou | nli_decidiu_inconclusivo",
+    )
+    justificativa_decisao: str | None = Field(
+        default=None,
+        description="Texto explicativo da regra de decisão aplicada",
+    )
 
     model_config = {"from_attributes": True}
 

@@ -17,6 +17,7 @@ import {
   apiCriarVerificacao,
   mapVerificacaoApiItem,
   type FonteInfo,
+  type NliVotos,
 } from "./services/verificacoes";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -94,6 +95,11 @@ export default function App() {
   const [verdictFontes, setVerdictFontes] = useState<FonteInfo[]>([]);
   const [verdictConfidence, setVerdictConfidence] = useState<number>(0);
   const [verdictReady, setVerdictReady] = useState(false);
+  const [verdictNliAgregado, setVerdictNliAgregado] = useState<string | null | undefined>(null);
+  const [verdictNliScore, setVerdictNliScore] = useState<number | null | undefined>(null);
+  const [verdictNliVotos, setVerdictNliVotos] = useState<NliVotos | null | undefined>(null);
+  const [verdictDecisaoOrigem, setVerdictDecisaoOrigem] = useState<string | null | undefined>(null);
+  const [verdictJustificativa, setVerdictJustificativa] = useState<string | null | undefined>(null);
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -141,6 +147,11 @@ export default function App() {
       details: string;
       confidence: number;
       fontes: FonteInfo[];
+      nliAgregado?: string | null;
+      nliScore?: number | null;
+      nliVotos?: NliVotos | null;
+      decisaoOrigem?: string | null;
+      justificativa?: string | null;
     }> => {
       if (token && isAuthenticated) {
         try {
@@ -162,11 +173,21 @@ export default function App() {
       details: string;
       confidence: number;
       fontes: FonteInfo[];
+      nliAgregado?: string | null;
+      nliScore?: number | null;
+      nliVotos?: NliVotos | null;
+      decisaoOrigem?: string | null;
+      justificativa?: string | null;
     }) => {
       setVerdictResult(mapped.result);
       setVerdictDetails(mapped.details);
       setVerdictFontes(mapped.fontes);
       setVerdictConfidence(mapped.confidence);
+      setVerdictNliAgregado(mapped.nliAgregado);
+      setVerdictNliScore(mapped.nliScore);
+      setVerdictNliVotos(mapped.nliVotos);
+      setVerdictDecisaoOrigem(mapped.decisaoOrigem);
+      setVerdictJustificativa(mapped.justificativa);
       setVerifications(prev =>
         prev.map(v =>
           v.id === newVerification.id
@@ -276,6 +297,11 @@ export default function App() {
           timestamp={verdictTimestamp}
           fontes={verdictFontes}
           onNewVerification={handleNewVerification}
+          nliAgregado={verdictNliAgregado}
+          nliScore={verdictNliScore}
+          nliVotos={verdictNliVotos}
+          decisaoOrigem={verdictDecisaoOrigem}
+          justificativa={verdictJustificativa}
         />
       );
     }

@@ -10,8 +10,9 @@ import {
   RefreshCw,
   AlertTriangle,
   Globe,
+  Brain,
 } from "lucide-react";
-import type { FonteInfo } from "../services/verificacoes";
+import type { FonteInfo, NliVotos } from "../services/verificacoes";
 
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
 
@@ -24,6 +25,12 @@ interface VerdictPageProps {
   timestamp: Date;
   fontes: FonteInfo[];
   onNewVerification: () => void;
+  // campos NLI opcionais — não quebram quando ausentes
+  nliAgregado?: string | null;
+  nliScore?: number | null;
+  nliVotos?: NliVotos | null;
+  decisaoOrigem?: string | null;
+  justificativa?: string | null;
 }
 
 const VERDICT_CONFIG: Record<
@@ -73,6 +80,84 @@ const VERDICT_CONFIG: Record<
     badgeLabel: "Inconclusivo",
   },
 };
+
+// ── Helpers NLI ──────────────────────────────────────────────────────────────
+
+const NLI_LABEL_MAP: Record<string, { text: string; color: string }> = {
+  SUPPORTS: { text: "Confirma", color: "#22c55e" },
+  REFUTES:  { text: "Refuta",   color: "#ef4444" },
+  NEUTRAL:  { text: "Neutra",   color: "#f59e0b" },
+};
+
+const TIPO_FONTE_MAP: Record<string, string> = {
+  oficial:       "Fonte oficial",
+  fact_checking: "Checagem",
+  jornalistica:  "Fonte jornalística",
+  enciclopedia:  "Enciclopédia",
+  desconhecida:  "Desconhecida",
+};
+
+const CONFIABILIDADE_MAP: Record<string, { text: string; color: string }> = {
+  alta:       { text: "Alta",       color: "#22c55e" },
+  media:      { text: "Média",      color: "#f59e0b" },
+  baixa:      { text: "Baixa",      color: "#f97316" },
+  muito_baixa:{ text: "Muito baixa",color: "#ef4444" },
+};
+
+const DECISAO_ORIGEM_MAP: Record<string, string> = {
+  fluxo_atual:              "Fluxo atual (ML + heurísticas)",
+  nli_reforcou:             "NLI reforçou o resultado",
+  nli_decidiu_inconclusivo: "NLI detectou conflito → inconclusivo",
+};
+
+function NLIBadge({ label }: { label: string | null | undefined }) {
+  if (!label) return null;
+  const cfg = NLI_LABEL_MAP[label] ?? { text: label, color: "#94a3b8" };
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        padding: "2px 8px",
+        borderRadius: "12px",
+        fontSize: "11px",
+        fontWeight: 600,
+        backgroundColor: `${cfg.color}18`,
+        border: `1px solid ${cfg.color}44`,
+        color: cfg.color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {cfg.text}
+    </span>
+  );
+}
+
+function TipoBadge({ tipo }: { tipo: string | null | undefined }) {
+  if (!tipo) return null;
+  const label = TIPO_FONTE_MAP[tipo] ?? tipo;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "1px 7px",
+        borderRadius: "10px",
+        fontSize: "10px",
+        fontWeight: 500,
+        backgroundColor: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        color: "var(--m3-on-surface-variant)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function ConfidenceGauge({ value, color }: { value: number; color: string }) {
   return (
@@ -126,6 +211,11 @@ export function VerdictPage({
   timestamp,
   fontes,
   onNewVerification,
+  nliAgregado,
+  nliScore,
+  nliVotos,
+  decisaoOrigem,
+  justificativa,
 }: VerdictPageProps) {
   const cfg = VERDICT_CONFIG[result];
   const { Icon } = cfg;
@@ -362,6 +452,68 @@ export function VerdictPage({
             </p>
           </div>
 
+          {/* NLI aggregate panel — só exibe quando o backend retorna dados NLI */}
+          {nliAgregado && nliAgregado !== "NEUTRAL" && (
+            <div
+              style={{
+                borderRadius: "12px",
+                backgroundColor: "var(--m3-surface-container)",
+                border: "1px solid var(--m3-outline)",
+                borderLeft: `3px solid ${NLI_LABEL_MAP[nliAgregado]?.color ?? "#94a3b8"}`,
+                padding: "16px 20px",
+                marginBottom: "12px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <Brain size={14} style={{ color: "var(--m3-on-surface-variant)" }} />
+                <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--m3-on-surface-variant)", letterSpacing: "0.05em" }}>
+                  ANÁLISE POR INFERÊNCIA (NLI)
+                </p>
+              </div>
+
+              {/* Label + score */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
+                <NLIBadge label={nliAgregado} />
+                {nliScore != null && (
+                  <span style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)" }}>
+                    Score: <strong style={{ color: "var(--m3-on-surface)" }}>{Math.round(nliScore * 100)}%</strong>
+                  </span>
+                )}
+              </div>
+
+              {/* Votos */}
+              {nliVotos && (
+                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "10px" }}>
+                  {(["SUPPORTS", "REFUTES", "NEUTRAL"] as const).map((k) => {
+                    const n = nliVotos[k];
+                    const cfg = NLI_LABEL_MAP[k];
+                    return (
+                      <div key={k} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: cfg.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>
+                          {n} {n === 1 ? "fonte" : "fontes"} {cfg.text.toLowerCase()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Origem + justificativa */}
+              {decisaoOrigem && (
+                <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", marginBottom: "4px" }}>
+                  <strong>Origem da decisão:</strong>{" "}
+                  {DECISAO_ORIGEM_MAP[decisaoOrigem] ?? decisaoOrigem}
+                </p>
+              )}
+              {justificativa && (
+                <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", lineHeight: 1.5 }}>
+                  {justificativa}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Insufficient evidence banner (only for nao_verificavel) */}
           {result === "nao_verificavel" && (
             <div
@@ -444,7 +596,8 @@ export function VerdictPage({
                       borderBottom: fontes.length > 2 && i < fontes.length - 2 ? "1px solid var(--m3-outline)" : "none",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                    {/* Cabeçalho da fonte */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
                       <div
                         style={{
                           width: "36px",
@@ -472,6 +625,29 @@ export function VerdictPage({
                         <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>{fonte.fonte}</p>
                       </div>
                     </div>
+
+                    {/* Badges NLI e tipo de fonte */}
+                    {(fonte.nli_label || fonte.tipo_fonte) && (
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px", alignItems: "center" }}>
+                        {fonte.nli_label && <NLIBadge label={fonte.nli_label} />}
+                        {fonte.tipo_fonte && <TipoBadge tipo={fonte.tipo_fonte} />}
+                        {fonte.nli_score != null && (
+                          <span style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>
+                            {Math.round(fonte.nli_score * 100)}% NLI
+                          </span>
+                        )}
+                        {fonte.confiabilidade_fonte && CONFIABILIDADE_MAP[fonte.confiabilidade_fonte] && (
+                          <span style={{
+                            fontSize: "10px",
+                            color: CONFIABILIDADE_MAP[fonte.confiabilidade_fonte].color,
+                            fontWeight: 500,
+                          }}>
+                            Confiabilidade: {CONFIABILIDADE_MAP[fonte.confiabilidade_fonte].text}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", lineHeight: 1.5, marginBottom: "10px" }}>
                       {fonte.snippet}
                     </p>
