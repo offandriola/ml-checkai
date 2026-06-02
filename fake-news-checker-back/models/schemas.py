@@ -343,6 +343,18 @@ class FonteInfo(BaseModel):
         default=None,
         description="Score de confiança da classificação NLI (0.0 a 1.0)",
     )
+    tipo_fonte: str | None = Field(
+        default=None,
+        description="Categoria da fonte: oficial, fact_checking, jornalistica, enciclopedia, desconhecida",
+    )
+    confiabilidade_fonte: str | None = Field(
+        default=None,
+        description="Nível de confiabilidade: alta, media, baixa ou muito_baixa",
+    )
+    peso_fonte: float | None = Field(
+        default=None,
+        description="Peso numérico de confiabilidade da fonte (0.0 a 1.0)",
+    )
 
 
 class VerificacaoCreateRequest(BaseModel):

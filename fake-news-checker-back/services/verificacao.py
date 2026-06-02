@@ -22,6 +22,7 @@ from services.busca_web import buscar_fontes
 from services.concordancia_fontes import CONFIANCA_ALINHAMENTO_FRACO, reconciliar_com_fontes
 from services.extrator_artigos import extrair_conteudo_multiplos
 from services.nli import agregar_resultado_nli, classificar_pares_nli
+from services.ranking_fontes import ranquear_fontes
 
 
 logger = logging.getLogger(__name__)
@@ -100,6 +101,9 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
         fut_ml = pool.submit(classificar_texto, texto)
         fontes = fut_fontes.result()
         resultado_ml = fut_ml.result()
+
+    # Filtra fontes sociais/inúteis e prioriza oficiais/jornalísticas
+    fontes = ranquear_fontes(fontes, max_fontes=5)
 
     _enriquecer_fontes_com_artigos(fontes)
 
