@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ShieldCheck, Bell, Crown, LogOut, ChevronDown, User } from "lucide-react";
+import { Bell, Crown, LogOut, ChevronDown, User } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import logoSvg from "../../assets/icon.svg";
 
 interface HeaderProps {
   showNav?: boolean;
@@ -12,7 +13,6 @@ export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderPro
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // User initials
   const initials = user?.nome
     ? user.nome
         .split(" ")
@@ -28,92 +28,155 @@ export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderPro
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center justify-between px-4 md:px-8 h-16 w-full"
+      className="sticky top-0 z-30 w-full"
       style={{
-        backgroundColor: "var(--m3-surface)",
-        borderBottom: "1px solid var(--m3-outline)",
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        height: "64px",
+        backgroundColor: "#070707",
+        borderBottom: "1px solid #252525",
       }}
     >
-      {/* Lado Esquerdo: Logo */}
+      {/* Logo — ancorada à esquerda */}
       <button
         onClick={onLogoClick}
-        className="flex items-center gap-2"
         aria-label="CheckAI - Início"
         style={{
+          position: "absolute",
+          left: "32px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
           background: "none",
           border: "none",
           cursor: "pointer",
           padding: 0,
         }}
       >
-        <div
-          className="flex items-center justify-center rounded-lg"
+        <img
+          src={logoSvg}
+          alt="CheckAI"
+          style={{ width: "36px", height: "36px", flexShrink: 0 }}
+        />
+        <span
           style={{
-            width: "36px",
-            height: "36px",
-            backgroundColor: "var(--m3-primary-container)",
+            fontSize: "22px",
+            fontWeight: 600,
+            color: "#F2EEED",
+            lineHeight: 1,
           }}
         >
-          <ShieldCheck size={20} style={{ color: "var(--m3-primary)" }} />
-        </div>
-        <span
-          className="text-xl font-medium"
-          style={{ color: "var(--m3-on-surface)" }}
-        >
-          check<span style={{ color: "var(--m3-primary)" }}>ai</span>
+          check<span style={{ color: "#FF3784" }}>ai</span>
         </span>
       </button>
 
-      {/* Centro: Nav Links (Opcional) */}
+      {/* Nav — centralizado no meio real da tela */}
       {showNav && !isAuthenticated && (
         <nav
-          className="hidden md:flex items-center"
-          style={{ gap: "2rem" }}
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+          }}
         >
-          <button className="relative py-1 text-sm font-medium" style={{ color: "var(--m3-primary)" }}>
+          <button
+            style={{
+              position: "relative",
+              paddingTop: "4px",
+              paddingBottom: "4px",
+              paddingLeft: "20px",
+              paddingRight: "20px",
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#FF3784",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
             Início
             <span
-              className="absolute bottom-0 left-0 w-full rounded-full"
-              style={{ height: "2px", backgroundColor: "var(--m3-primary)" }}
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: "20px",
+                right: "20px",
+                height: "2px",
+                borderRadius: "9999px",
+                backgroundColor: "#FF3784",
+              }}
             />
           </button>
           <button
-            className="py-1 text-sm font-medium transition-colors hover:text-[var(--m3-on-surface)]"
-            style={{ color: "var(--m3-on-surface-variant)" }}
+            style={{
+              paddingTop: "4px",
+              paddingBottom: "4px",
+              paddingLeft: "20px",
+              paddingRight: "20px",
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#9E9E9E",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
           >
             Planos
           </button>
           <button
-            className="py-1 text-sm font-medium transition-colors hover:text-[var(--m3-on-surface)]"
-            style={{ color: "var(--m3-on-surface-variant)" }}
+            style={{
+              paddingTop: "4px",
+              paddingBottom: "4px",
+              paddingLeft: "20px",
+              paddingRight: "20px",
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#9E9E9E",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
           >
-            Sobre
+            Sobre o CheckAI
           </button>
         </nav>
       )}
 
-      {/* Lado Direito: Ações */}
-      <div className="flex items-center gap-3">
+      {/* Ações — ancoradas à direita */}
+      <div
+        style={{
+          position: "absolute",
+          right: "32px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
         {isAuthenticated ? (
           <>
             <div
               className="flex items-center gap-1 px-3 py-1 rounded-full border"
               style={{
-                backgroundColor: "var(--m3-primary-container)",
+                backgroundColor: "rgba(255,55,132,0.14)",
                 borderColor: "rgba(255,55,132,0.3)",
               }}
             >
-              <Crown size={12} style={{ color: "var(--m3-primary)" }} />
-              <span className="text-xs font-semibold" style={{ color: "var(--m3-primary)" }}>
+              <Crown size={12} style={{ color: "#FF3784" }} />
+              <span className="text-xs font-semibold" style={{ color: "#FF3784" }}>
                 Pro
               </span>
             </div>
 
             <button
-              className="flex items-center justify-center rounded-full w-9 h-9 border-none cursor-pointer transition-colors"
+              className="flex items-center justify-center rounded-full w-9 h-9"
               style={{
                 backgroundColor: "transparent",
-                color: "var(--m3-on-surface-variant)",
+                border: "none",
+                cursor: "pointer",
+                color: "#9E9E9E",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
@@ -125,11 +188,11 @@ export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderPro
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu((v) => !v)}
-                className="flex items-center gap-2 px-2 py-1 rounded-full border cursor-pointer transition-colors"
+                className="flex items-center gap-2 px-2 py-1 rounded-full border cursor-pointer"
                 style={{
-                  borderColor: "var(--m3-outline)",
+                  borderColor: "#252525",
                   backgroundColor: "transparent",
-                  color: "var(--m3-on-surface)",
+                  color: "#F2EEED",
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
@@ -139,50 +202,39 @@ export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderPro
                   style={{
                     width: "28px",
                     height: "28px",
-                    backgroundColor: "var(--m3-primary-container)",
-                    color: "var(--m3-primary)",
+                    backgroundColor: "rgba(255,55,132,0.18)",
+                    color: "#FF3784",
                   }}
                 >
                   {initials}
                 </div>
-                <span className="text-sm font-medium">
-                  {user?.nome ?? "Usuário"}
-                </span>
-                <ChevronDown size={14} style={{ color: "var(--m3-on-surface-variant)" }} />
+                <span className="text-sm font-medium">{user?.nome ?? "Usuário"}</span>
+                <ChevronDown size={14} style={{ color: "#9E9E9E" }} />
               </button>
 
               {showUserMenu && (
                 <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowUserMenu(false)}
-                  />
+                  <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
                   <div
                     className="absolute right-0 z-50 min-w-[200px] rounded-2xl border p-2 shadow-2xl"
                     style={{
                       top: "calc(100% + 8px)",
-                      borderColor: "var(--m3-outline)",
-                      backgroundColor: "var(--m3-surface-container)",
+                      borderColor: "#252525",
+                      backgroundColor: "#111111",
                     }}
                   >
-                    <div
-                      className="px-3 py-2 mb-1 border-b"
-                      style={{ borderColor: "var(--m3-outline)" }}
-                    >
-                      <p className="text-sm font-semibold m-0" style={{ color: "var(--m3-on-surface)" }}>
+                    <div className="px-3 py-2 mb-1 border-b" style={{ borderColor: "#252525" }}>
+                      <p className="text-sm font-semibold m-0" style={{ color: "#F2EEED" }}>
                         {user?.nome}
                       </p>
-                      <p className="text-xs m-0" style={{ color: "var(--m3-on-surface-variant)" }}>
+                      <p className="text-xs m-0" style={{ color: "#9E9E9E" }}>
                         {user?.email}
                       </p>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border-none cursor-pointer text-sm font-medium transition-colors"
-                      style={{
-                        backgroundColor: "transparent",
-                        color: "#ef4444",
-                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border-none cursor-pointer text-sm font-medium"
+                      style={{ backgroundColor: "transparent", color: "#ef4444" }}
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.1)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
                     >
@@ -197,12 +249,15 @@ export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderPro
         ) : (
           <button
             onClick={onLoginClick}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-150 hover:bg-white/5"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
             style={{
-              color: "var(--m3-on-surface)",
-              borderColor: "var(--m3-outline)",
-              backgroundColor: "transparent",
+              backgroundColor: "#FF3784",
+              color: "#F2EEED",
+              border: "none",
+              cursor: "pointer",
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#e61e6c"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#FF3784"; }}
           >
             <User size={16} />
             Entrar

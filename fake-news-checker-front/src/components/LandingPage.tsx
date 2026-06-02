@@ -12,7 +12,6 @@ import {
   Brain,
   Search,
   CheckCircle2,
-  User,
 } from "lucide-react";
 
 interface LandingPageProps {
@@ -93,79 +92,101 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
   return (
     <div
       className="dark min-h-screen flex flex-col"
-      style={{ backgroundColor: "var(--m3-surface)" }}
+      style={{ backgroundColor: "#070707" }}
     >
-      {/* ── Main Content ── */}
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* Left: Copy */}
+
+        {/* ── Hero ── */}
+        <section
+          className="max-w-7xl mx-auto px-4 md:px-8"
+          style={{ paddingTop: "44px", paddingBottom: "24px" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "5fr 7fr",
+              gap: "48px",
+              alignItems: "center",
+            }}
+          >
+            {/* Esquerda: Copy */}
             <div>
               <p
-                className="text-xs font-medium tracking-widest mb-4"
-                style={{ color: "var(--m3-primary)" }}
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  letterSpacing: "0.12em",
+                  color: "#FF3784",
+                  marginBottom: "12px",
+                }}
               >
-                CHECKAI
+                C H E C K A I
               </p>
               <h1
-                className="text-4xl md:text-5xl font-medium leading-tight mb-6"
-                style={{ color: "var(--m3-on-surface)" }}
+                style={{
+                  fontSize: "clamp(28px, 3.5vw, 44px)",
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                  color: "#F2EEED",
+                  marginBottom: "20px",
+                }}
               >
                 Valide informações políticas com{" "}
-                <span style={{ color: "var(--m3-primary)" }}>
-                  análise automatizada
-                </span>
+                <span style={{ color: "#FF3784" }}>análise automatizada</span>
               </h1>
               <p
-                className="text-base leading-relaxed mb-8"
-                style={{ color: "var(--m3-on-surface-variant)" }}
+                style={{
+                  fontSize: "15px",
+                  lineHeight: 1.6,
+                  color: "#9E9E9E",
+                  marginBottom: "24px",
+                }}
               >
                 Identificamos informações falsas, distorcidas ou enganosas e
                 mostramos as evidências.
               </p>
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={18} style={{ color: "var(--m3-primary)" }} />
-                <p style={{ color: "var(--m3-on-surface-variant)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <ShieldCheck size={17} style={{ color: "#FF3784", flexShrink: 0 }} />
+                <p style={{ fontSize: "14px", color: "#9E9E9E", margin: 0 }}>
                   Tecnologia a serviço da{" "}
-                  <span
-                    className="font-medium"
-                    style={{ color: "var(--m3-primary)" }}
-                  >
-                    verdade.
-                  </span>
+                  <span style={{ color: "#FF3784", fontWeight: 500 }}>verdade.</span>
                 </p>
               </div>
             </div>
 
-            {/* Right: Verification Widget */}
+            {/* Direita: Widget */}
             <div
-              className="rounded-2xl p-6"
               style={{
-                backgroundColor: "var(--m3-surface-container)",
-                border: "1.5px solid var(--m3-primary)",
-                boxShadow: "0 0 40px rgba(255,55,132,0.12)",
+                borderRadius: "16px",
+                padding: "24px",
+                backgroundColor: "#111111",
+                border: "1.5px solid #FF3784",
+                boxShadow: "0 0 48px rgba(255,55,132,0.12)",
               }}
             >
               {/* Widget Header */}
-              <div className="flex items-center gap-3 mb-6">
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "var(--m3-primary-container)" }}
+                  style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    backgroundColor: "rgba(255,55,132,0.15)",
+                  }}
                 >
-                  <Search size={22} style={{ color: "var(--m3-primary)" }} />
+                  <Search size={20} style={{ color: "#FF3784" }} />
                 </div>
                 <div>
                   <h2
-                    className="text-lg font-medium"
-                    style={{ color: "var(--m3-on-surface)" }}
+                    style={{ fontSize: "16px", fontWeight: 600, color: "#F2EEED", margin: 0 }}
                   >
                     Verifique uma informação
                   </h2>
-                  <p
-                    className="text-sm"
-                    style={{ color: "var(--m3-on-surface-variant)" }}
-                  >
+                  <p style={{ fontSize: "13px", color: "#9E9E9E", margin: 0 }}>
                     Selecione o tipo de análise
                   </p>
                 </div>
@@ -173,10 +194,12 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
 
               {/* Tabs */}
               <div
-                className="rounded-xl overflow-hidden mb-4"
                 style={{
                   display: "flex",
-                  border: "1px solid var(--m3-outline)",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  border: "1px solid #252525",
+                  marginBottom: "12px",
                 }}
               >
                 {(
@@ -189,27 +212,24 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                   <button
                     key={type}
                     onClick={() => setActiveTab(type)}
-                    className="text-sm font-medium transition-all duration-150"
                     style={{
                       flex: 1,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "6px",
-                      padding: "12px 8px",
-                      backgroundColor:
-                        activeTab === type
-                          ? "var(--m3-primary)"
-                          : "transparent",
-                      color:
-                        activeTab === type
-                          ? "var(--m3-on-primary)"
-                          : "var(--m3-on-surface-variant)",
-                      borderLeft:
-                        i > 0 ? "1px solid var(--m3-outline)" : "none",
+                      padding: "10px 8px",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      border: "none",
+                      borderLeft: i > 0 ? "1px solid #252525" : "none",
+                      cursor: "pointer",
+                      transition: "background-color 0.15s",
+                      backgroundColor: activeTab === type ? "#FF3784" : "transparent",
+                      color: activeTab === type ? "#F2EEED" : "#9E9E9E",
                     }}
                   >
-                    <Icon size={16} />
+                    <Icon size={15} />
                     {label}
                   </button>
                 ))}
@@ -219,10 +239,10 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
               <div
                 style={{
                   position: "relative",
-                  borderRadius: "12px",
-                  marginBottom: "16px",
-                  backgroundColor: "var(--m3-surface)",
-                  border: "1px solid var(--m3-outline)",
+                  borderRadius: "10px",
+                  marginBottom: "12px",
+                  backgroundColor: "#070707",
+                  border: "1px solid #252525",
                 }}
               >
                 <textarea
@@ -230,21 +250,22 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={placeholder}
                   maxLength={maxLength}
-                  rows={4}
-                  className="w-full bg-transparent resize-none outline-none text-sm"
+                  rows={3}
+                  className="w-full bg-transparent resize-none outline-none"
                   style={{
-                    color: "var(--m3-on-surface)",
-                    padding: "16px 16px 36px 16px",
+                    color: "#F2EEED",
+                    fontSize: "13px",
+                    padding: "14px 14px 32px 14px",
                     display: "block",
                   }}
                 />
                 <span
                   style={{
                     position: "absolute",
-                    bottom: "10px",
+                    bottom: "8px",
                     right: "12px",
                     fontSize: "11px",
-                    color: "var(--m3-on-surface-variant)",
+                    color: "#555",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -256,26 +277,42 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
               <button
                 onClick={handleSubmit}
                 disabled={!inputValue.trim()}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-base font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
                 style={{
-                  backgroundColor: "var(--m3-primary)",
-                  color: "var(--m3-on-primary)",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "13px 16px",
+                  borderRadius: "10px",
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: inputValue.trim() ? "pointer" : "not-allowed",
+                  opacity: inputValue.trim() ? 1 : 0.5,
+                  backgroundColor: "#FF3784",
+                  color: "#F2EEED",
+                  transition: "opacity 0.15s",
                 }}
+                onMouseEnter={(e) => { if (inputValue.trim()) e.currentTarget.style.opacity = "0.88"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = inputValue.trim() ? "1" : "0.5"; }}
               >
                 Checkar informação
-                <ArrowRight size={18} />
+                <ArrowRight size={17} />
               </button>
 
               {/* Privacy Note */}
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <ShieldCheck
-                  size={14}
-                  style={{ color: "var(--m3-on-surface-variant)" }}
-                />
-                <p
-                  className="text-xs"
-                  style={{ color: "var(--m3-on-surface-variant)" }}
-                >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  marginTop: "12px",
+                }}
+              >
+                <ShieldCheck size={13} style={{ color: "#555" }} />
+                <p style={{ fontSize: "12px", color: "#555", margin: 0 }}>
                   Seus dados estão protegidos e não são compartilhados.
                 </p>
               </div>
@@ -283,36 +320,40 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
           </div>
         </section>
 
-        {/* ── 4-Step Process ── */}
-        <section className="max-w-7xl mx-auto px-4 md:px-8 pb-8">
+        {/* ── Como analisamos ── */}
+        <section
+          className="max-w-7xl mx-auto px-4 md:px-8"
+          style={{ paddingBottom: "20px" }}
+        >
           <div
-            className="rounded-2xl"
             style={{
-              backgroundColor: "var(--m3-surface-container)",
-              border: "1px solid var(--m3-outline)",
-              padding: "32px 24px",
+              borderRadius: "14px",
+              border: "1px solid #252525",
+              backgroundColor: "#111111",
+              padding: "20px 24px",
             }}
           >
             <div
               style={{
                 display: "flex",
                 flexWrap: "wrap",
-                gap: "32px",
+                gap: "20px",
                 alignItems: "center",
               }}
             >
               {/* Label */}
-              <div style={{ flexShrink: 0, minWidth: "140px" }}>
+              <div style={{ flexShrink: 0, minWidth: "130px" }}>
                 <p
-                  className="text-base font-medium"
-                  style={{ color: "var(--m3-on-surface)", marginBottom: "4px" }}
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "#F2EEED",
+                    marginBottom: "2px",
+                  }}
                 >
                   Como analisamos
                 </p>
-                <p
-                  className="text-sm"
-                  style={{ color: "var(--m3-on-surface-variant)" }}
-                >
+                <p style={{ fontSize: "12px", color: "#9E9E9E", margin: 0 }}>
                   Nosso processo em 4 etapas.
                 </p>
               </div>
@@ -322,7 +363,7 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                 style={{
                   display: "flex",
                   flex: 1,
-                  gap: "8px",
+                  gap: "4px",
                   flexWrap: "wrap",
                 }}
               >
@@ -333,59 +374,51 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                       key={step.number}
                       style={{
                         position: "relative",
-                        flex: "1 1 100px",
+                        flex: "1 1 90px",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         textAlign: "center",
-                        gap: "6px",
+                        gap: "4px",
                       }}
                     >
-                      {/* Dotted connector */}
+                      {/* Conector pontilhado */}
                       {i < STEPS.length - 1 && (
                         <div
                           style={{
                             position: "absolute",
-                            top: "24px",
-                            left: "calc(50% + 28px)",
-                            width: "calc(100% - 28px)",
+                            top: "20px",
+                            left: "calc(50% + 24px)",
+                            width: "calc(100% - 24px)",
                             height: "1px",
-                            borderTop: "2px dashed var(--m3-outline)",
+                            borderTop: "2px dashed rgba(255,55,132,0.35)",
                           }}
                         />
                       )}
 
+                      {/* Ícone circular */}
                       <div
                         style={{
-                          width: "48px",
-                          height: "48px",
+                          width: "40px",
+                          height: "40px",
                           borderRadius: "50%",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          backgroundColor: "var(--m3-primary-container)",
                           flexShrink: 0,
+                          backgroundColor: "rgba(255,55,132,0.18)",
                         }}
                       >
-                        <Icon size={20} style={{ color: "var(--m3-primary)" }} />
+                        <Icon size={18} style={{ color: "#FF3784" }} />
                       </div>
 
-                      <p
-                        className="text-xs font-medium"
-                        style={{ color: "var(--m3-primary)" }}
-                      >
+                      <p style={{ fontSize: "11px", fontWeight: 700, color: "#FF3784", margin: 0 }}>
                         {step.number}
                       </p>
-                      <p
-                        className="text-sm font-medium"
-                        style={{ color: "var(--m3-on-surface)" }}
-                      >
+                      <p style={{ fontSize: "12px", fontWeight: 600, color: "#F2EEED", margin: 0 }}>
                         {step.label}
                       </p>
-                      <p
-                        className="text-xs"
-                        style={{ color: "var(--m3-on-surface-variant)", lineHeight: "1.5" }}
-                      >
+                      <p style={{ fontSize: "11px", color: "#9E9E9E", lineHeight: 1.4, margin: 0 }}>
                         {step.description}
                       </p>
                     </div>
@@ -396,12 +429,15 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
           </div>
         </section>
 
-        {/* ── Features Grid ── */}
-        <section className="max-w-7xl mx-auto px-4 md:px-8 pb-16">
+        {/* ── Feature Cards ── */}
+        <section
+          className="max-w-7xl mx-auto px-4 md:px-8"
+          style={{ paddingBottom: "48px" }}
+        >
           <div
             style={{
-              display: "flex",
-              flexWrap: "wrap",
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
               gap: "16px",
             }}
           >
@@ -411,40 +447,47 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                 <div
                   key={feature.title}
                   style={{
-                    flex: "1 1 220px",
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: "16px",
-                    borderRadius: "16px",
-                    padding: "20px",
-                    backgroundColor: "var(--m3-surface-container)",
-                    border: "1px solid var(--m3-outline)",
+                    gap: "14px",
+                    borderRadius: "14px",
+                    padding: "18px",
+                    backgroundColor: "#111111",
+                    border: "1px solid #252525",
                   }}
                 >
                   <div
                     style={{
-                      width: "44px",
-                      height: "44px",
-                      borderRadius: "12px",
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
-                      backgroundColor: "var(--m3-primary-container)",
+                      backgroundColor: "rgba(255,55,132,0.18)",
                     }}
                   >
-                    <Icon size={20} style={{ color: "var(--m3-primary)" }} />
+                    <Icon size={18} style={{ color: "#FF3784" }} />
                   </div>
                   <div>
                     <p
-                      className="text-sm font-medium"
-                      style={{ color: "var(--m3-on-surface)", marginBottom: "4px" }}
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "#F2EEED",
+                        marginBottom: "4px",
+                      }}
                     >
                       {feature.title}
                     </p>
                     <p
-                      className="text-xs"
-                      style={{ color: "var(--m3-on-surface-variant)", lineHeight: "1.5" }}
+                      style={{
+                        fontSize: "12px",
+                        color: "#9E9E9E",
+                        lineHeight: 1.5,
+                        margin: 0,
+                      }}
                     >
                       {feature.description}
                     </p>
@@ -457,17 +500,14 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
       </main>
 
       {/* ── Footer ── */}
-      <footer
-        className="border-t py-6"
-        style={{ borderColor: "var(--m3-outline)" }}
-      >
-        <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-center gap-2">
-          <ShieldCheck size={16} style={{ color: "var(--m3-on-surface-variant)" }} />
-          <p
-            className="text-sm"
-            style={{ color: "var(--m3-on-surface-variant)" }}
-          >
-            © 2026 CheckAI. Todos os diretos reservados
+      <footer style={{ borderTop: "1px solid #252525", padding: "20px 0" }}>
+        <div
+          className="max-w-7xl mx-auto px-4 md:px-8"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+        >
+          <ShieldCheck size={15} style={{ color: "#555" }} />
+          <p style={{ fontSize: "13px", color: "#555", margin: 0 }}>
+            © 2026 CheckAI. Todos os direitos reservados
           </p>
         </div>
       </footer>
