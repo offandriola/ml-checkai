@@ -13,6 +13,11 @@
 #   tipo_fonte           — categoria detectada
 #   confiabilidade_fonte — "alta", "media", "baixa" ou "muito_baixa"
 #   peso_fonte           — float de 0.0 a 1.0
+#
+# Categoria "contextual_politica":
+#   Sites pessoais ou institucionais de atores políticos, partidos e campanhas.
+#   Permanecem no retorno da API (úteis como contexto), mas com peso baixo (0.20)
+#   e confiabilidade "baixa", portanto NÃO influenciam o veredito final.
 # ==============================================================================
 
 import logging
@@ -100,6 +105,24 @@ _DOMINIOS_ENCICLOPEDIA: tuple[str, ...] = (
     "wikidata.org",
 )
 
+# Sites pessoais/institucionais de atores políticos, partidos e campanhas.
+# Mantidos no retorno mas com peso baixo — não influenciam o veredito final.
+_DOMINIOS_POLITICA_CONTEXTUAL: tuple[str, ...] = (
+    "lula.com.br",
+    "bolsonaro.com.br",
+    "jairmessias.com.br",
+    "pt.org.br",
+    "pl22.com.br",
+    "pl.org.br",
+    "mbl.org.br",
+    "vemprarua.net",
+    "psol50.org.br",
+    "mdb.org.br",
+    "psdb.org.br",
+    "pdt.org.br",
+    "pcdob.org.br",
+)
+
 # Redes sociais e plataformas de vídeo — descartadas por padrão
 # (snippets são inúteis para NLI e o conteúdo não é verificável)
 _DOMINIOS_SOCIAIS: tuple[str, ...] = (
@@ -125,21 +148,23 @@ _DOMINIOS_SOCIAIS: tuple[str, ...] = (
 # ---------------------------------------------------------------------------
 
 _PESO_POR_TIPO: dict[str, float] = {
-    "oficial":       1.00,
-    "fact_checking": 0.95,
-    "jornalistica":  0.80,
-    "enciclopedia":  0.30,
-    "social":        0.05,   # na prática são descartadas antes de chegar aqui
-    "desconhecida":  0.45,
+    "oficial":              1.00,
+    "fact_checking":        0.95,
+    "jornalistica":         0.80,
+    "desconhecida":         0.45,
+    "enciclopedia":         0.30,
+    "contextual_politica":  0.20,
+    "social":               0.05,   # na prática são descartadas antes de chegar aqui
 }
 
 _CONFIABILIDADE_POR_TIPO: dict[str, str] = {
-    "oficial":       "alta",
-    "fact_checking": "alta",
-    "jornalistica":  "alta",
-    "enciclopedia":  "baixa",
-    "social":        "muito_baixa",
-    "desconhecida":  "media",
+    "oficial":              "alta",
+    "fact_checking":        "alta",
+    "jornalistica":         "alta",
+    "desconhecida":         "media",
+    "enciclopedia":         "baixa",
+    "contextual_politica":  "baixa",
+    "social":               "muito_baixa",
 }
 
 # Comprimento mínimo de snippet para que a fonte seja útil ao NLI
@@ -187,6 +212,8 @@ def _detectar_tipo(url: str, campo_fonte: str) -> str:
 
     if any(d in referencia for d in _DOMINIOS_SOCIAIS):
         return "social"
+    if any(d in referencia for d in _DOMINIOS_POLITICA_CONTEXTUAL):
+        return "contextual_politica"
     if any(d in referencia for d in _DOMINIOS_FACT_CHECK):
         return "fact_checking"
     if any(d in referencia for d in _DOMINIOS_OFICIAIS):

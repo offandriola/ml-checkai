@@ -101,6 +101,17 @@ FONTES_SIMULADAS = [
         ),
         "fonte": "blogpolitico2022.wordpress.com",
     },
+    # 8. Site pessoal de ator politico — deve virar contextual_politica
+    {
+        "titulo": "Lula anuncia pacote de medidas economicas",
+        "url": "https://lula.com.br/medidas-economicas",
+        "snippet": (
+            "O presidente Lula anunciou hoje um pacote de medidas economicas "
+            "para estimular o crescimento do PIB. As medidas incluem reducao "
+            "de impostos para micro e pequenas empresas."
+        ),
+        "fonte": "lula.com.br",
+    },
 ]
 
 SEP = "=" * 65
@@ -206,6 +217,50 @@ def main() -> None:
     print(f"\n  Resultado: {acertos}/{len(checks)} verificacoes passaram")
     status = "PASSOU" if acertos == len(checks) else "PARCIAL"
     print(f"  Status   : {status}")
+
+    # ------------------------------------------------------------------
+    # Verificacao especifica: fonte contextual_politica (lula.com.br)
+    # ------------------------------------------------------------------
+    # Testa isoladamente para garantir classificacao correta independente
+    # de quantas fontes estejam no ranking.
+    # ------------------------------------------------------------------
+    print(f"\n{SEP}")
+    print("  Verificacao: fonte contextual_politica (lula.com.br)")
+    print(SEP)
+
+    FONTE_POLITICA = [
+        f for f in FONTES_SIMULADAS if f.get("fonte") == "lula.com.br"
+    ]
+    resultado_politica = ranquear_fontes(FONTE_POLITICA, max_fontes=5)
+
+    fonte_p = resultado_politica[0] if resultado_politica else {}
+    tipo_ok = fonte_p.get("tipo_fonte") == "contextual_politica"
+    confiab_ok = fonte_p.get("confiabilidade_fonte") == "baixa"
+    peso_ok = (fonte_p.get("peso_fonte") or 1.0) <= 0.30
+
+    checks_politica = [
+        ("lula.com.br: tipo = contextual_politica", tipo_ok),
+        ("lula.com.br: confiabilidade = baixa", confiab_ok),
+        ("lula.com.br: peso <= 0.30", peso_ok),
+    ]
+
+    acertos_p = 0
+    for nome, ok in checks_politica:
+        icone = "[OK]" if ok else "[XX]"
+        print(f"\n  {icone} {nome}")
+        if resultado_politica:
+            if "tipo_fonte" in nome:
+                print(f"       obtido: {fonte_p.get('tipo_fonte', '-')}")
+            elif "confiabilidade" in nome:
+                print(f"       obtido: {fonte_p.get('confiabilidade_fonte', '-')}")
+            elif "peso" in nome:
+                print(f"       obtido: {fonte_p.get('peso_fonte', '-')}")
+        if ok:
+            acertos_p += 1
+
+    print(f"\n  Resultado: {acertos_p}/{len(checks_politica)} verificacoes passaram")
+    status_p = "PASSOU" if acertos_p == len(checks_politica) else "PARCIAL"
+    print(f"  Status   : {status_p}")
     print()
 
 

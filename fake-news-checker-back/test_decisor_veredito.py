@@ -50,6 +50,48 @@ def _votos(label: str, n: int = 3) -> dict:
     return outros
 
 
+def _fontes_contextuais(label: str, n: int = 3) -> list[dict]:
+    """Fontes contextual_politica (lula.com.br) — nao devem influenciar veredito."""
+    return [
+        {
+            "titulo": f"Site politico {i + 1}",
+            "url": f"https://lula.com.br/pronunciamento-{i}",
+            "snippet": f"Conteudo do site politico {i + 1} com informacao sobre o tema.",
+            "fonte": "lula.com.br",
+            "tipo_fonte": "contextual_politica",
+            "confiabilidade_fonte": "baixa",
+            "nli_label": label,
+            "nli_score": 0.92,
+        }
+        for i in range(n)
+    ]
+
+
+def _fontes_com_tipo(
+    label: str, tipo: str, confiab: str = "alta", score: float = 0.88, n: int = 3
+) -> list[dict]:
+    """Fontes com tipo_fonte explicitamente definido (ranking aplicado)."""
+    dominios = {
+        "oficial": ("tse.jus.br", "https://tse.jus.br/noticia-{}"),
+        "fact_checking": ("aosfatos.org", "https://aosfatos.org/noticias/{}"),
+        "jornalistica": ("g1.globo.com", "https://g1.globo.com/noticia-{}"),
+    }
+    fonte_dom, url_tpl = dominios.get(tipo, ("exemplo.com", "https://exemplo.com/{}"))
+    return [
+        {
+            "titulo": f"Fonte {tipo} {i + 1}",
+            "url": url_tpl.format(i),
+            "snippet": f"Conteudo verificado da fonte {tipo} {i + 1}.",
+            "fonte": fonte_dom,
+            "tipo_fonte": tipo,
+            "confiabilidade_fonte": confiab,
+            "nli_label": label,
+            "nli_score": score,
+        }
+        for i in range(n)
+    ]
+
+
 def _rodar(cenario: dict) -> bool:
     resultado_obj = decidir_veredito_final(
         resultado_atual=cenario["resultado_atual"],
@@ -202,6 +244,58 @@ CENARIOS = [
         "fontes": _fontes_altas("REFUTES", 3),
         "esperado_resultado": "REAL",
         "esperado_origem": "fluxo_atual",
+    },
+    # 10. ML=REAL + lula.com.br REFUTES alto → mantém REAL (site politico ignorado)
+    {
+        "id": "10",
+        "nome": "ML=REAL + lula.com.br REFUTES forte → REAL (contextual_politica ignorada)",
+        "resultado_atual": "REAL",
+        "confianca_atual": 0.80,
+        "nli_resultado_agregado": "REFUTES",
+        "nli_score_agregado": 0.92,
+        "nli_votos": _votos("REFUTES", 3),
+        "fontes": _fontes_contextuais("REFUTES", 3),
+        "esperado_resultado": "REAL",
+        "esperado_origem": "fluxo_atual",
+    },
+    # 11. ML=REAL + Aos Fatos REFUTES 0.61 → INCONCLUSIVO (regra especial)
+    {
+        "id": "11",
+        "nome": "ML=REAL + Aos Fatos REFUTES score=0.61 → INCONCLUSIVO (regra especial)",
+        "resultado_atual": "REAL",
+        "confianca_atual": 0.80,
+        "nli_resultado_agregado": "REFUTES",
+        "nli_score_agregado": 0.61,   # abaixo de _SCORE_NLI_FORTE, mas acima de _SCORE_FACTCHECK_ESPECIAL
+        "nli_votos": _votos("REFUTES", 1),
+        "fontes": _fontes_com_tipo("REFUTES", "fact_checking", "alta", 0.61, 1),
+        "esperado_resultado": "INCONCLUSIVO",
+        "esperado_origem": "nli_decidiu_inconclusivo",
+    },
+    # 12. ML=INCONCLUSIVO + lula.com.br SUPPORTS alto → continua INCONCLUSIVO
+    {
+        "id": "12",
+        "nome": "ML=INCONCLUSIVO + lula.com.br SUPPORTS forte → INCONCLUSIVO (site politico ignorado)",
+        "resultado_atual": "INCONCLUSIVO",
+        "confianca_atual": 0.55,
+        "nli_resultado_agregado": "SUPPORTS",
+        "nli_score_agregado": 0.92,
+        "nli_votos": _votos("SUPPORTS", 3),
+        "fontes": _fontes_contextuais("SUPPORTS", 3),
+        "esperado_resultado": "INCONCLUSIVO",
+        "esperado_origem": "fluxo_atual",
+    },
+    # 13. ML=INCONCLUSIVO + fonte oficial SUPPORTS forte → REAL
+    {
+        "id": "13",
+        "nome": "ML=INCONCLUSIVO + fonte oficial SUPPORTS forte → REAL",
+        "resultado_atual": "INCONCLUSIVO",
+        "confianca_atual": 0.55,
+        "nli_resultado_agregado": "SUPPORTS",
+        "nli_score_agregado": 0.88,
+        "nli_votos": _votos("SUPPORTS", 3),
+        "fontes": _fontes_com_tipo("SUPPORTS", "oficial", "alta", 0.88, 3),
+        "esperado_resultado": "REAL",
+        "esperado_origem": "nli_reforcou",
     },
 ]
 

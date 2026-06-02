@@ -5,19 +5,26 @@
 # (ML + heurísticas) com o sinal NLI para produzir o veredito definitivo.
 #
 # Regras (conservadoras por design para TCC):
-#   1. Sem fontes NLI ou NLI neutro           → mantém fluxo atual
-#   2. NLI e ML concordam (forte)             → mantém resultado + pequeno boost
-#   3. ML=REAL   + NLI=REFUTES forte          → INCONCLUSIVO (conflito)
-#   4. ML=FALSO  + NLI=SUPPORTS forte         → INCONCLUSIVO (conflito)
-#   5. ML=INCONCLUSIVO + NLI=SUPPORTS forte   → REAL  (NLI resolve)
-#   6. ML=INCONCLUSIVO + NLI=REFUTES forte    → FALSO (NLI resolve)
-#   7. NLI fraco (score ou votos insuficientes) → mantém fluxo atual
+#   1a. Sem fontes NLI ou NLI ausente           → mantém fluxo atual
+#   E.  Fact-checking alta confiab. conflita    → INCONCLUSIVO (regra especial)
+#   1b. NLI neutro                              → mantém fluxo atual
+#   2.  NLI e ML concordam (forte)              → mantém resultado + pequeno boost
+#   3.  ML=REAL   + NLI=REFUTES forte           → INCONCLUSIVO (conflito)
+#   4.  ML=FALSO  + NLI=SUPPORTS forte          → INCONCLUSIVO (conflito)
+#   5.  ML=INCONCLUSIVO + NLI=SUPPORTS forte    → REAL  (NLI resolve)
+#   6.  ML=INCONCLUSIVO + NLI=REFUTES forte     → FALSO (NLI resolve)
+#   7.  NLI fraco (score ou votos insuficientes) → mantém fluxo atual
 #
 # "NLI forte" exige:
 #   - score_agregado >= _SCORE_NLI_FORTE (0.75)
-#   - pelo menos _MIN_VOTOS_CONFIAVEIS (2) fontes de alta confiabilidade
-#     com o label NLI esperado, OU a mesma quantidade de votos diretos
-#     no dicionário nli_votos (fallback quando ranking não foi aplicado).
+#   - quando ranking_fontes foi aplicado (fontes têm tipo_fonte):
+#       pelo menos _MIN_VOTOS_CONFIAVEIS (2) fontes de tipo independente
+#       (oficial, jornalistica, fact_checking) e alta confiabilidade.
+#   - quando ranking_fontes NÃO foi aplicado:
+#       fallback por contagem de nli_votos.
+#
+# Fontes que NÃO influenciam o veredito (quando ranking foi aplicado):
+#   contextual_politica, enciclopedia, desconhecida, social.
 # ==============================================================================
 
 import logging
@@ -28,11 +35,15 @@ logger = logging.getLogger(__name__)
 # Limiares
 # ---------------------------------------------------------------------------
 
-_SCORE_NLI_FORTE: float = 0.75      # score mínimo para o NLI influenciar
+_SCORE_NLI_FORTE: float = 0.75       # score mínimo para o NLI influenciar
+_SCORE_FACTCHECK_ESPECIAL: float = 0.60  # score mínimo para regra especial de fact-checking
 _MIN_VOTOS_CONFIAVEIS: int = 2       # fontes de alta confiabilidade necessárias
 _BOOST_CONCORDANCIA: float = 0.05   # acréscimo de confiança quando ML ≡ NLI
 _CONFIANCA_CONFLITO: float = 0.55   # confiança adotada ao entrar em conflito
 _MAX_CONFIANCA: float = 0.99        # teto absoluto de confiança
+
+# Tipos de fonte que podem influenciar o veredito final (quando ranking foi aplicado)
+_TIPOS_DECIDEM: frozenset[str] = frozenset({"oficial", "jornalistica", "fact_checking"})
 
 
 # ---------------------------------------------------------------------------
@@ -48,14 +59,20 @@ def _tem_fontes(nli_votos: dict | None) -> bool:
 
 def _contar_votos_confiaveis(fontes: list[dict], label: str) -> int:
     """
-    Conta fontes com confiabilidade_fonte == "alta" que têm o label NLI indicado.
+    Conta fontes independentes de alta confiabilidade com o label NLI indicado.
 
-    Depende do ranking_fontes ter sido aplicado previamente.
+    Exige que ranking_fontes tenha sido aplicado (campo tipo_fonte presente).
+    Fontes contextual_politica, enciclopedia, desconhecida e social não contam,
+    mesmo que tenham confiabilidade "alta" por algum motivo externo.
     """
     return sum(
         1
         for f in fontes
-        if f.get("confiabilidade_fonte") == "alta" and f.get("nli_label") == label
+        if (
+            f.get("confiabilidade_fonte") == "alta"
+            and f.get("nli_label") == label
+            and f.get("tipo_fonte", "") in _TIPOS_DECIDEM
+        )
     )
 
 
@@ -68,14 +85,33 @@ def _nli_e_forte(
     """
     Verifica se o NLI tem sinal forte o suficiente para alterar o veredito.
 
-    Exige score alto E quantidade mínima de fontes confiáveis concordando.
-    O fallback por nli_votos cobre o caso em que ranking_fontes não foi aplicado.
+    Quando ranking_fontes foi aplicado (alguma fonte tem tipo_fonte), usa apenas
+    fontes de tipo independente (oficial, jornalistica, fact_checking) de alta
+    confiabilidade. Quando não foi aplicado, cai no fallback por nli_votos.
     """
     if not nli_score or nli_score < _SCORE_NLI_FORTE:
         return False
-    if _contar_votos_confiaveis(fontes, label) >= _MIN_VOTOS_CONFIAVEIS:
-        return True
+    ranking_aplicado = any("tipo_fonte" in f for f in fontes)
+    if ranking_aplicado:
+        return _contar_votos_confiaveis(fontes, label) >= _MIN_VOTOS_CONFIAVEIS
     return (nli_votos or {}).get(label, 0) >= _MIN_VOTOS_CONFIAVEIS
+
+
+def _tem_factcheck_forte(fontes: list[dict], label: str) -> bool:
+    """
+    Retorna True se existe ao menos uma fonte fact_checking de alta
+    confiabilidade com o nli_label indicado e score >= _SCORE_FACTCHECK_ESPECIAL.
+
+    Uma única fonte de fact-checking qualificada é suficiente para acionar
+    a regra especial — reflete a natureza especializada dessas agências.
+    """
+    return any(
+        f.get("tipo_fonte") == "fact_checking"
+        and f.get("confiabilidade_fonte") == "alta"
+        and f.get("nli_label") == label
+        and (f.get("nli_score") or 0.0) >= _SCORE_FACTCHECK_ESPECIAL
+        for f in fontes
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -112,15 +148,11 @@ def decidir_veredito_final(
     """
 
     # ------------------------------------------------------------------
-    # Regra 1 — NLI ausente, sem fontes ou neutro: mantém fluxo atual
+    # Regra 1a — NLI completamente ausente ou sem fontes avaliadas
     # ------------------------------------------------------------------
-    if (
-        not _tem_fontes(nli_votos)
-        or not nli_resultado_agregado
-        or nli_resultado_agregado == "NEUTRAL"
-    ):
+    if not _tem_fontes(nli_votos) or not nli_resultado_agregado:
         logger.debug(
-            "Decisor: NLI ausente/neutro — fluxo_atual (%s conf=%.2f)",
+            "Decisor: NLI ausente/sem fontes — fluxo_atual (%s conf=%.2f)",
             resultado_atual, confianca_atual,
         )
         return {
@@ -128,8 +160,59 @@ def decidir_veredito_final(
             "confianca": confianca_atual,
             "decisao_origem": "fluxo_atual",
             "justificativa_decisao": (
-                "NLI sem fontes avaliadas ou resultado neutro; "
-                "mantém o resultado do fluxo atual."
+                "NLI sem fontes avaliadas; mantém o resultado do fluxo atual."
+            ),
+        }
+
+    # ------------------------------------------------------------------
+    # Regra especial — fact-checking de alta confiabilidade em conflito
+    # ------------------------------------------------------------------
+    # Uma única agência de fact-checking qualificada (score >= 0.60) é
+    # suficiente para tornar o resultado INCONCLUSIVO quando contradiz o ML,
+    # independentemente do label agregado das demais fontes.
+    # ------------------------------------------------------------------
+    if resultado_atual == "REAL" and _tem_factcheck_forte(fontes, "REFUTES"):
+        logger.info(
+            "Decisor: ML=REAL + fact_checking REFUTES forte → INCONCLUSIVO (regra especial)"
+        )
+        return {
+            "resultado": "INCONCLUSIVO",
+            "confianca": _CONFIANCA_CONFLITO,
+            "decisao_origem": "nli_decidiu_inconclusivo",
+            "justificativa_decisao": (
+                "Fonte de fact-checking de alta confiabilidade refuta a alegação. "
+                "Resultado conservador: INCONCLUSIVO."
+            ),
+        }
+
+    if resultado_atual == "FALSO" and _tem_factcheck_forte(fontes, "SUPPORTS"):
+        logger.info(
+            "Decisor: ML=FALSO + fact_checking SUPPORTS forte → INCONCLUSIVO (regra especial)"
+        )
+        return {
+            "resultado": "INCONCLUSIVO",
+            "confianca": _CONFIANCA_CONFLITO,
+            "decisao_origem": "nli_decidiu_inconclusivo",
+            "justificativa_decisao": (
+                "Fonte de fact-checking de alta confiabilidade confirma a alegação "
+                "contradizendo o ML. Resultado conservador: INCONCLUSIVO."
+            ),
+        }
+
+    # ------------------------------------------------------------------
+    # Regra 1b — NLI neutro: mantém fluxo atual
+    # ------------------------------------------------------------------
+    if nli_resultado_agregado == "NEUTRAL":
+        logger.debug(
+            "Decisor: NLI neutro — fluxo_atual (%s conf=%.2f)",
+            resultado_atual, confianca_atual,
+        )
+        return {
+            "resultado": resultado_atual,
+            "confianca": confianca_atual,
+            "decisao_origem": "fluxo_atual",
+            "justificativa_decisao": (
+                "NLI com resultado neutro; mantém o resultado do fluxo atual."
             ),
         }
 
