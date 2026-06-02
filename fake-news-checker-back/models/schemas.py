@@ -396,6 +396,14 @@ class VerificarPublicoResponse(BaseModel):
         default=None,
         description="Contagem de votos NLI por categoria: {SUPPORTS, REFUTES, NEUTRAL}",
     )
+    decisao_origem: str | None = Field(
+        default=None,
+        description="Origem da decisão final: fluxo_atual | nli_reforcou | nli_decidiu_inconclusivo",
+    )
+    justificativa_decisao: str | None = Field(
+        default=None,
+        description="Texto explicativo da regra de decisão aplicada",
+    )
 
 
 class VerificacaoResponse(BaseModel):
@@ -419,6 +427,14 @@ class VerificacaoResponse(BaseModel):
     nli_votos: dict | None = Field(
         default=None,
         description="Contagem de votos NLI por categoria: {SUPPORTS, REFUTES, NEUTRAL}",
+    )
+    decisao_origem: str | None = Field(
+        default=None,
+        description="Origem da decisão final: fluxo_atual | nli_reforcou | nli_decidiu_inconclusivo",
+    )
+    justificativa_decisao: str | None = Field(
+        default=None,
+        description="Texto explicativo da regra de decisão aplicada",
     )
 
     model_config = {"from_attributes": True}

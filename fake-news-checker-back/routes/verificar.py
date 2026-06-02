@@ -49,4 +49,6 @@ async def verificar_publico(
         nli_resultado_agregado=resultado.get("nli_resultado_agregado"),
         nli_score_agregado=resultado.get("nli_score_agregado"),
         nli_votos=resultado.get("nli_votos"),
+        decisao_origem=resultado.get("decisao_origem"),
+        justificativa_decisao=resultado.get("justificativa_decisao"),
     )

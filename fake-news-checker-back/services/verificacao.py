@@ -23,6 +23,7 @@ from services.concordancia_fontes import CONFIANCA_ALINHAMENTO_FRACO, reconcilia
 from services.extrator_artigos import extrair_conteudo_multiplos
 from services.nli import agregar_resultado_nli, classificar_pares_nli
 from services.ranking_fontes import ranquear_fontes
+from services.decisor_veredito import decidir_veredito_final
 
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,18 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
     if resultado == "INCONCLUSIVO" and confianca < CONFIANCA_ALINHAMENTO_FRACO:
         confianca = CONFIANCA_ALINHAMENTO_FRACO
 
+    # Decisor final: combina fluxo atual + NLI de forma conservadora
+    veredito = decidir_veredito_final(
+        resultado_atual=resultado,
+        confianca_atual=confianca,
+        nli_resultado_agregado=nli_resultado_agregado,
+        nli_score_agregado=nli_score_agregado,
+        nli_votos=nli_votos,
+        fontes=fontes,
+    )
+    resultado = veredito["resultado"]
+    confianca = veredito["confianca"]
+
     return {
         "texto_verificado": texto,
         "tipo": tipo,
@@ -133,6 +146,8 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
         "nli_resultado_agregado": nli_resultado_agregado,
         "nli_score_agregado": nli_score_agregado,
         "nli_votos": nli_votos,
+        "decisao_origem": veredito["decisao_origem"],
+        "justificativa_decisao": veredito["justificativa_decisao"],
     }
 
 
