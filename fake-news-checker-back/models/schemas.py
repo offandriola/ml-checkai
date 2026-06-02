@@ -335,6 +335,14 @@ class FonteInfo(BaseModel):
         default=None,
         description="Resumo do conteúdo extraído do artigo (até 500 chars)",
     )
+    nli_label: str | None = Field(
+        default=None,
+        description="Classificação NLI desta fonte: SUPPORTS, REFUTES ou NEUTRAL",
+    )
+    nli_score: float | None = Field(
+        default=None,
+        description="Score de confiança da classificação NLI (0.0 a 1.0)",
+    )
 
 
 class VerificacaoCreateRequest(BaseModel):
@@ -364,6 +372,18 @@ class VerificarPublicoResponse(BaseModel):
         description="True se o modelo ML real foi usado na classificação",
     )
     fontes: list[FonteInfo] = Field(default_factory=list)
+    nli_resultado_agregado: str | None = Field(
+        default=None,
+        description="Veredito NLI agregado das fontes: SUPPORTS, REFUTES ou NEUTRAL",
+    )
+    nli_score_agregado: float | None = Field(
+        default=None,
+        description="Score médio do veredito NLI agregado (0.0 a 1.0)",
+    )
+    nli_votos: dict | None = Field(
+        default=None,
+        description="Contagem de votos NLI por categoria: {SUPPORTS, REFUTES, NEUTRAL}",
+    )
 
 
 class VerificacaoResponse(BaseModel):
@@ -376,6 +396,18 @@ class VerificacaoResponse(BaseModel):
     confianca: float
     fontes: list[FonteInfo] = Field(default_factory=list, description="Fontes web recuperadas")
     criado_em: datetime
+    nli_resultado_agregado: str | None = Field(
+        default=None,
+        description="Veredito NLI agregado das fontes: SUPPORTS, REFUTES ou NEUTRAL",
+    )
+    nli_score_agregado: float | None = Field(
+        default=None,
+        description="Score médio do veredito NLI agregado (0.0 a 1.0)",
+    )
+    nli_votos: dict | None = Field(
+        default=None,
+        description="Contagem de votos NLI por categoria: {SUPPORTS, REFUTES, NEUTRAL}",
+    )
 
     model_config = {"from_attributes": True}
 

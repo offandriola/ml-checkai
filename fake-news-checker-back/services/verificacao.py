@@ -21,6 +21,7 @@ from services.classificador import classificar_texto
 from services.busca_web import buscar_fontes
 from services.concordancia_fontes import CONFIANCA_ALINHAMENTO_FRACO, reconciliar_com_fontes
 from services.extrator_artigos import extrair_conteudo_multiplos
+from services.nli import agregar_resultado_nli, classificar_pares_nli
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,35 @@ def _enriquecer_fontes_com_artigos(fontes: list[dict]) -> None:
             fonte["texto_extraido"] = artigo.get("resumo", "")
 
 
+_NLI_VOTOS_VAZIO: dict = {"SUPPORTS": 0, "REFUTES": 0, "NEUTRAL": 0}
+
+
+def _enriquecer_fontes_com_nli(texto: str, fontes: list[dict]) -> tuple[str, float, dict]:
+    """
+    Classifica cada fonte com NLI e retorna o resultado agregado.
+
+    Fail-safe: qualquer exceção retorna veredito neutro e deixa as fontes
+    sem campos NLI, mantendo o fluxo principal intacto.
+
+    Retorna:
+        (nli_resultado_agregado, nli_score_agregado, nli_votos)
+    """
+    try:
+        nli_resultados = classificar_pares_nli(texto, fontes)
+        for fonte, nli in zip(fontes, nli_resultados):
+            fonte["nli_label"] = nli.get("label")
+            fonte["nli_score"] = nli.get("score")
+        agregado = agregar_resultado_nli(nli_resultados)
+        return (
+            agregado.get("label", "NEUTRAL"),
+            float(agregado.get("score", 0.0)),
+            agregado.get("votos", dict(_NLI_VOTOS_VAZIO)),
+        )
+    except Exception as exc:
+        logger.warning("NLI falhou durante verificação, seguindo sem NLI: %s", exc)
+        return "NEUTRAL", 0.0, dict(_NLI_VOTOS_VAZIO)
+
+
 def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
     """
     Executa busca web, classificação ML e mapeamento de resultado.
@@ -72,6 +102,11 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
         resultado_ml = fut_ml.result()
 
     _enriquecer_fontes_com_artigos(fontes)
+
+    # Enriquece cada fonte com NLI (não altera o veredito final)
+    nli_resultado_agregado, nli_score_agregado, nli_votos = _enriquecer_fontes_com_nli(
+        texto, fontes
+    )
 
     classificacao, confianca, _ = reconciliar_com_fontes(
         texto,
@@ -91,6 +126,9 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
         "confianca": confianca,
         "modelo_ativo": "sim" if resultado_ml["modelo_ativo"] else "nao",
         "fontes": fontes,
+        "nli_resultado_agregado": nli_resultado_agregado,
+        "nli_score_agregado": nli_score_agregado,
+        "nli_votos": nli_votos,
     }
 
 

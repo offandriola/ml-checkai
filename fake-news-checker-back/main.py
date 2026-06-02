@@ -38,6 +38,7 @@ from fastapi.responses import JSONResponse
 from config import API_TITULO, API_DESCRICAO, API_VERSAO, API_DEBUG
 from routes import health, coleta, dados, classificador, auth, verificacao, verificar, dashboard
 from services.classificador import carregar_modelo
+from services.nli import carregar_modelo_nli
 from utils.db_migrate import aplicar_migracoes
 
 # ==============================================================================
@@ -85,6 +86,18 @@ async def lifespan(app: FastAPI):
         logger.info(
             "Modelo de classificação não encontrado — modo mock ativado"
         )
+
+    # Tenta carregar o modelo NLI (falha não derruba a API)
+    try:
+        nli_ok = carregar_modelo_nli()
+        if nli_ok:
+            logger.info("Modelo NLI carregado com sucesso")
+        else:
+            logger.warning(
+                "Modelo NLI não carregado — verificações seguirão sem enriquecimento NLI"
+            )
+    except Exception as exc:
+        logger.warning("Falha ao carregar modelo NLI, seguindo sem NLI: %s", exc)
 
     logger.info("API pronta para receber requisições")
     yield
