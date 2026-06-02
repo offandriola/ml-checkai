@@ -7,6 +7,9 @@ import { HistoryPage } from "./components/HistoryPage";
 import { ResultsPage } from "./components/ResultsPage";
 import { SettingsPage } from "./components/SettingsPage";
 import { LandingPage } from "./components/LandingPage";
+import { SobrePage } from "./components/SobrePage";
+import { PlanosPage } from "./components/PlanosPage";
+import { CheckoutPage } from "./components/CheckoutPage";
 import { ProcessingPage } from "./components/ProcessingPage";
 import { VerdictPage } from "./components/VerdictPage";
 import { LoginPage } from "./components/LoginPage";
@@ -39,7 +42,7 @@ interface Verification {
   confidence?: number;
 }
 
-type FullPage = "landing" | "processing" | "verdict" | "login" | "register" | "forgot-password" | AppPage;
+type FullPage = "landing" | "sobre" | "planos" | "checkout" | "processing" | "verdict" | "login" | "register" | "forgot-password" | AppPage;
 
 const VERIFICATION_STEPS = [
   { id: 1, label: "Recebendo as informações" },
@@ -240,6 +243,18 @@ export default function App() {
       );
     }
 
+    if (currentPage === "sobre") {
+      return <SobrePage />;
+    }
+
+    if (currentPage === "planos") {
+      return <PlanosPage onAssinar={() => setCurrentPage("checkout")} />;
+    }
+
+    if (currentPage === "checkout") {
+      return <CheckoutPage onAlterar={() => setCurrentPage("planos")} />;
+    }
+
     if (currentPage === "processing") {
       const activeV = verifications.find(v => v.id === activeVerificationId);
       return (
@@ -308,9 +323,19 @@ export default function App() {
       }}
     >
       <Header
-        showNav={currentPage === "landing"}
+        showNav={["landing", "sobre", "planos", "checkout"].includes(currentPage)}
+        activePage={
+          currentPage === "planos" || currentPage === "checkout"
+            ? "planos"
+            : currentPage === "sobre"
+            ? "sobre"
+            : "inicio"
+        }
         onLoginClick={() => setCurrentPage("login")}
         onLogoClick={() => setCurrentPage(isAuthenticated ? "home" : "landing")}
+        onNavInicio={() => setCurrentPage("landing")}
+        onNavPlanos={() => setCurrentPage("planos")}
+        onNavSobre={() => setCurrentPage("sobre")}
       />
 
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>

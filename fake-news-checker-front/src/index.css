@@ -1334,6 +1334,12 @@
   --sidebar-ring: var(--m3-primary);
 }
 
+html,
+body {
+  background-color: #070707;
+  margin: 0;
+}
+
 html {
   font-size: var(--font-size);
 }

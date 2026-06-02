@@ -5,11 +5,23 @@ import logoSvg from "../../assets/icon.svg";
 
 interface HeaderProps {
   showNav?: boolean;
+  activePage?: "inicio" | "planos" | "sobre";
   onLoginClick?: () => void;
   onLogoClick?: () => void;
+  onNavInicio?: () => void;
+  onNavPlanos?: () => void;
+  onNavSobre?: () => void;
 }
 
-export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderProps) {
+export function Header({
+  showNav = false,
+  activePage = "inicio",
+  onLoginClick,
+  onLogoClick,
+  onNavInicio,
+  onNavPlanos,
+  onNavSobre,
+}: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -80,68 +92,50 @@ export function Header({ showNav = false, onLoginClick, onLogoClick }: HeaderPro
             transform: "translateX(-50%)",
             display: "flex",
             alignItems: "center",
+            height: "64px",
           }}
         >
-          <button
-            style={{
-              position: "relative",
-              paddingTop: "4px",
-              paddingBottom: "4px",
-              paddingLeft: "20px",
-              paddingRight: "20px",
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#FF3784",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Início
-            <span
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: "20px",
-                right: "20px",
-                height: "2px",
-                borderRadius: "9999px",
-                backgroundColor: "#FF3784",
-              }}
-            />
-          </button>
-          <button
-            style={{
-              paddingTop: "4px",
-              paddingBottom: "4px",
-              paddingLeft: "20px",
-              paddingRight: "20px",
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#9E9E9E",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Planos
-          </button>
-          <button
-            style={{
-              paddingTop: "4px",
-              paddingBottom: "4px",
-              paddingLeft: "20px",
-              paddingRight: "20px",
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#9E9E9E",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Sobre o CheckAI
-          </button>
+          {[
+            { key: "inicio" as const, label: "Início", onClick: onNavInicio },
+            { key: "planos" as const, label: "Planos", onClick: onNavPlanos },
+            { key: "sobre" as const, label: "Sobre o CheckAI", onClick: onNavSobre },
+          ].map(({ key, label, onClick }) => {
+            const isActive = activePage === key;
+            return (
+              <button
+                key={key}
+                onClick={onClick}
+                style={{
+                  position: "relative",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  paddingLeft: "20px",
+                  paddingRight: "20px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  color: isActive ? "#FF3784" : "#9E9E9E",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {label}
+                {isActive && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: "20px",
+                      right: "20px",
+                      height: "2px",
+                      backgroundColor: "#FF3784",
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </nav>
       )}
 
