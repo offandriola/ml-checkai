@@ -8,6 +8,18 @@ export interface FonteInfo {
   snippet: string;
   fonte: string;
   texto_extraido?: string | null;
+  // campos NLI e ranking (opcionais — chegam quando o backend está atualizado)
+  nli_label?: string | null;
+  nli_score?: number | null;
+  tipo_fonte?: string | null;
+  confiabilidade_fonte?: string | null;
+  peso_fonte?: number | null;
+}
+
+export interface NliVotos {
+  SUPPORTS: number;
+  REFUTES: number;
+  NEUTRAL: number;
 }
 
 export interface VerificacaoApiItem {
@@ -18,6 +30,12 @@ export interface VerificacaoApiItem {
   confianca: number;
   fontes: FonteInfo[];
   criado_em: string;
+  // campos NLI agregados (opcionais)
+  nli_resultado_agregado?: string | null;
+  nli_score_agregado?: number | null;
+  nli_votos?: NliVotos | null;
+  decisao_origem?: string | null;
+  justificativa_decisao?: string | null;
 }
 
 export interface ResumoApiResponse {
@@ -48,6 +66,11 @@ export function mapVerificacaoApiItem(data: VerificacaoApiItem): {
   details: string;
   confidence: number;
   fontes: FonteInfo[];
+  nliAgregado?: string | null;
+  nliScore?: number | null;
+  nliVotos?: NliVotos | null;
+  decisaoOrigem?: string | null;
+  justificativa?: string | null;
 } {
   const raw = typeof data.confianca === "number" ? data.confianca : 0;
   let conf = Math.round(raw * 100);
@@ -57,6 +80,11 @@ export function mapVerificacaoApiItem(data: VerificacaoApiItem): {
     details: `Confiança: ${conf}%`,
     confidence: conf,
     fontes: data.fontes ?? [],
+    nliAgregado: data.nli_resultado_agregado,
+    nliScore: data.nli_score_agregado,
+    nliVotos: data.nli_votos,
+    decisaoOrigem: data.decisao_origem,
+    justificativa: data.justificativa_decisao,
   };
 }
 
