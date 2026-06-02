@@ -5,7 +5,7 @@
 # usuário autenticado. Todas exigem token JWT válido.
 # ==============================================================================
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -20,6 +20,7 @@ from services.verificacao import (
     buscar_verificacao_por_id,
     calcular_resumo,
     criar_verificacao,
+    criar_verificacao_por_imagem,
     listar_verificacoes,
     verificacao_para_response,
 )
@@ -46,6 +47,23 @@ async def criar(
 ) -> VerificacaoResponse:
     """Executa a verificação e a registra no histórico do usuário autenticado."""
     verificacao = criar_verificacao(db, usuario_atual.id, dados.texto, dados.tipo)
+    return verificacao_para_response(verificacao)
+
+
+@router.post(
+    "/imagem",
+    response_model=VerificacaoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar verificação por imagem (upload)",
+    description="Recebe um arquivo de imagem via multipart, extrai texto com OCR e classifica.",
+)
+async def criar_por_imagem(
+    imagem: UploadFile = File(..., description="Arquivo de imagem (PNG, JPG, WEBP)"),
+    usuario_atual: User = Depends(get_usuario_atual),
+    db: Session = Depends(get_db),
+) -> VerificacaoResponse:
+    conteudo = await imagem.read()
+    verificacao = criar_verificacao_por_imagem(db, usuario_atual.id, conteudo)
     return verificacao_para_response(verificacao)
 
 

@@ -15,6 +15,7 @@ import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
 import { postVerificar, mapVerificarToResult } from "./services/api";
 import {
   apiCriarVerificacao,
+  apiCriarVerificacaoImagem,
   mapVerificacaoApiItem,
   type FonteInfo,
   type NliVotos,
@@ -116,18 +117,19 @@ export default function App() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const handleSubmit = async (value: string, attachmentType: "text" | "link" | "image" = "text") => {
+  const handleSubmit = async (value: string, attachmentType: "text" | "link" | "image" = "text", imageFile?: File) => {
     const ts = new Date();
+    const displayContent = imageFile ? `[Imagem: ${imageFile.name}]` : value;
     const newVerification: Verification = {
       id: Date.now().toString(),
-      content: value,
+      content: displayContent,
       type: attachmentType,
       steps: VERIFICATION_STEPS.map(step => ({ ...step, completed: false })),
       currentStepIndex: 0,
       timestamp: ts,
     };
 
-    setVerdictContent(value);
+    setVerdictContent(displayContent);
     setVerdictType(attachmentType);
     setVerdictTimestamp(ts);
     setVerdictReady(false);
@@ -155,7 +157,9 @@ export default function App() {
     }> => {
       if (token && isAuthenticated) {
         try {
-          const data = await apiCriarVerificacao(token, value, attachmentType);
+          const data = imageFile
+            ? await apiCriarVerificacaoImagem(token, imageFile)
+            : await apiCriarVerificacao(token, value, attachmentType);
           return mapVerificacaoApiItem(data);
         } catch (err) {
           console.warn(
@@ -316,7 +320,7 @@ export default function App() {
           />
         )}
         {appPage === "history" && <HistoryPage />}
-        {appPage === "results" && <ResultsPage />}
+        {appPage === "results" && <ResultsPage onNavigate={(p) => setCurrentPage(p)} />}
         {appPage === "plan" && <PlaceholderPage title={PAGE_TITLES.plan} />}
         {appPage === "settings" && <SettingsPage />}
       </div>
