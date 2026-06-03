@@ -15,6 +15,7 @@ import { VerdictPage } from "./components/VerdictPage";
 import { LoginPage } from "./components/LoginPage";
 import { RegisterPage } from "./components/RegisterPage";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
+import { GuestLimitModal } from "./components/GuestLimitModal";
 import { postVerificar, mapVerificarToResult } from "./services/api";
 import {
   apiCriarVerificacao,
@@ -107,6 +108,12 @@ export default function App() {
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
+  // ── Guest verification limit ──
+  const [guestHasVerified, setGuestHasVerified] = useState(
+    () => sessionStorage.getItem("checkai_guest_verified") === "true"
+  );
+  const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
+
   const reqIdRef = useRef(0);
 
   // Auto-navigate when auth state resolves
@@ -118,9 +125,15 @@ export default function App() {
     if (!isAuthenticated && APP_PAGES.includes(currentPage as AppPage)) {
       setCurrentPage("login");
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, currentPage]);
 
   const handleSubmit = async (value: string, attachmentType: "text" | "link" | "image" = "text", imageFile?: File) => {
+    // ── Bloquear segunda verificação de visitante ──
+    if (!isAuthenticated && guestHasVerified) {
+      setShowGuestLimitModal(true);
+      return;
+    }
+
     const ts = new Date();
     const displayContent = imageFile ? `[Imagem: ${imageFile.name}]` : value;
     const newVerification: Verification = {
@@ -212,6 +225,13 @@ export default function App() {
       applyResult(mapped);
       setVerdictReady(true);
     });
+
+    // ── Marcar que o visitante já fez sua verificação gratuita ──
+    if (!isAuthenticated) {
+      sessionStorage.setItem("checkai_guest_verified", "true");
+      setGuestHasVerified(true);
+    }
+
     setCurrentPage("verdict");
   };
 
@@ -263,7 +283,7 @@ export default function App() {
       return (
         <LandingPage
           onEnter={() => setCurrentPage("login")}
-          onSubmit={(value, type) => handleSubmit(value, type)}
+          onSubmit={(value, type, file) => handleSubmit(value, type, file)}
         />
       );
     }
@@ -316,6 +336,7 @@ export default function App() {
           timestamp={verdictTimestamp}
           fontes={verdictFontes}
           onNewVerification={handleNewVerification}
+          isAuthenticated={isAuthenticated}
           nliAgregado={verdictNliAgregado}
           nliScore={verdictNliScore}
           nliVotos={verdictNliVotos}
@@ -332,6 +353,7 @@ export default function App() {
           <HomePage
             verifications={verifications.filter(v => v.id === activeVerificationId)}
             onSubmit={handleSubmit}
+            onNavigateHistory={() => setCurrentPage("history")}
           />
         )}
         {appPage === "history" && <HistoryPage />}
@@ -377,6 +399,21 @@ export default function App() {
           {renderContent()}
         </div>
       </div>
+
+      {/* ── Guest limit modal ── */}
+      {showGuestLimitModal && (
+        <GuestLimitModal
+          onGoToRegister={() => {
+            setShowGuestLimitModal(false);
+            setCurrentPage("register");
+          }}
+          onGoToLogin={() => {
+            setShowGuestLimitModal(false);
+            setCurrentPage("login");
+          }}
+          onClose={() => setShowGuestLimitModal(false)}
+        />
+      )}
     </div>
   );
 }
