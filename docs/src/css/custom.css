@@ -1,0 +1,245 @@
+/**
+ * CheckAI — Tema visual da documentação
+ *
+ * Paleta extraída do frontend do projeto:
+ *   Rosa primário:      #ff3784
+ *   Fundo escuro:       #0f0d0e
+ *   Surface container:  #1a1718
+ *   Texto claro:        #f2eeed
+ *   Outline:            #2a2627
+ */
+
+/* ============================= */
+/*  Modo claro (light)           */
+/* ============================= */
+:root {
+  /* Rosa como cor primária em todas as variações */
+  --ifm-color-primary: #d42468;
+  --ifm-color-primary-dark: #be1f5d;
+  --ifm-color-primary-darker: #b31d58;
+  --ifm-color-primary-darkest: #941848;
+  --ifm-color-primary-light: #da3a76;
+  --ifm-color-primary-lighter: #dc457c;
+  --ifm-color-primary-lightest: #e26a94;
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 55, 132, 0.08);
+
+  /* Fundo da navbar e do footer com toque escuro do projeto */
+  --ifm-navbar-background-color: #0f0d0e;
+  --ifm-navbar-link-color: #f2eeed;
+  --ifm-navbar-link-hover-color: #ff3784;
+  --ifm-footer-background-color: #0f0d0e;
+  --ifm-footer-color: #cbbfbd;
+  --ifm-footer-link-color: #f2eeed;
+  --ifm-footer-link-hover-color: #ff3784;
+  --ifm-footer-title-color: #ff3784;
+
+  /* Links */
+  --ifm-link-color: #d42468;
+  --ifm-link-hover-color: #ff3784;
+
+  /* Sidebar */
+  --ifm-menu-color-active: #d42468;
+
+  /* Table of contents */
+  --ifm-toc-link-color: #555;
+
+  /* Hero */
+  --ifm-hero-background-color: #0f0d0e;
+  --ifm-hero-text-color: #f2eeed;
+}
+
+/* ============================= */
+/*  Modo escuro (dark)           */
+/* ============================= */
+[data-theme='dark'] {
+  --ifm-color-primary: #ff3784;
+  --ifm-color-primary-dark: #ff1472;
+  --ifm-color-primary-darker: #ff0569;
+  --ifm-color-primary-darkest: #d10053;
+  --ifm-color-primary-light: #ff5a96;
+  --ifm-color-primary-lighter: #ff699f;
+  --ifm-color-primary-lightest: #ff9cbf;
+
+  --ifm-background-color: #0f0d0e;
+  --ifm-background-surface-color: #1a1718;
+
+  --ifm-font-color-base: #f2eeed;
+  --ifm-font-color-secondary: #cbbfbd;
+
+  --ifm-navbar-background-color: #0f0d0e;
+  --ifm-navbar-link-color: #f2eeed;
+  --ifm-navbar-link-hover-color: #ff3784;
+
+  --ifm-footer-background-color: #0a0909;
+  --ifm-footer-color: #cbbfbd;
+  --ifm-footer-link-color: #f2eeed;
+  --ifm-footer-link-hover-color: #ff3784;
+  --ifm-footer-title-color: #ff3784;
+
+  --ifm-link-color: #ff3784;
+  --ifm-link-hover-color: #ff5a96;
+
+  --ifm-menu-color-active: #ff3784;
+  --ifm-menu-color-background-active: rgba(255, 55, 132, 0.1);
+
+  --ifm-toc-link-color: #cbbfbd;
+
+  --ifm-code-background: #1a1718;
+  --ifm-code-border-color: #2a2627;
+
+  --ifm-card-background-color: #1a1718;
+
+  --ifm-hr-border-color: #2a2627;
+  --ifm-table-border-color: #2a2627;
+  --ifm-table-stripe-background: rgba(255, 255, 255, 0.03);
+
+  --docusaurus-highlighted-code-line-bg: rgba(255, 55, 132, 0.15);
+}
+
+/* ============================= */
+/*  Hero banner                  */
+/* ============================= */
+.hero--primary {
+  background: linear-gradient(135deg, #0f0d0e 0%, #1a1718 50%, #2a1520 100%);
+  color: #f2eeed;
+}
+
+.hero--primary .hero__title {
+  color: #f2eeed;
+}
+
+.hero--primary .hero__subtitle {
+  color: #cbbfbd;
+}
+
+.hero--primary .button--secondary {
+  background-color: #ff3784;
+  border-color: #ff3784;
+  color: #0f0d0e;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.hero--primary .button--secondary:hover {
+  background-color: #ff5a96;
+  border-color: #ff5a96;
+  color: #0f0d0e;
+}
+
+/* ============================= */
+/*  Navbar                       */
+/* ============================= */
+.navbar {
+  border-bottom: 1px solid #2a2627;
+  box-shadow: none;
+}
+
+.navbar__title {
+  color: #ff3784;
+  font-weight: 700;
+}
+
+/* ============================= */
+/*  Sidebar                      */
+/* ============================= */
+[data-theme='dark'] .menu__link--active:not(.menu__link--sublist) {
+  border-left: 3px solid #ff3784;
+  padding-left: calc(var(--ifm-menu-link-padding-horizontal) - 3px);
+}
+
+/* ============================= */
+/*  Admonitions (:::tip etc.)    */
+/* ============================= */
+[data-theme='dark'] .alert--info {
+  --ifm-alert-background-color: rgba(255, 55, 132, 0.08);
+  --ifm-alert-border-color: #ff3784;
+}
+
+/* ============================= */
+/*  Code blocks                  */
+/* ============================= */
+[data-theme='dark'] .prism-code {
+  background-color: #0f0d0e !important;
+  border: 1px solid #2a2627;
+}
+
+/* ============================= */
+/*  Tables                       */
+/* ============================= */
+[data-theme='dark'] table {
+  border-color: #2a2627;
+}
+
+[data-theme='dark'] table th {
+  background-color: #1a1718;
+  border-color: #2a2627;
+}
+
+[data-theme='dark'] table td {
+  border-color: #2a2627;
+}
+
+[data-theme='dark'] table tr:nth-child(2n) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* ============================= */
+/*  Scrollbar (dark)             */
+/* ============================= */
+[data-theme='dark'] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: #0f0d0e;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #2a2627;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: #ff3784;
+}
+
+/* ============================= */
+/*  Footer                       */
+/* ============================= */
+.footer--dark {
+  background-color: #0a0909;
+  border-top: 1px solid #2a2627;
+}
+
+.footer__title {
+  color: #ff3784 !important;
+}
+
+/* ============================= */
+/*  Pagination                   */
+/* ============================= */
+[data-theme='dark'] .pagination-nav__link {
+  border-color: #2a2627;
+}
+
+[data-theme='dark'] .pagination-nav__link:hover {
+  border-color: #ff3784;
+}
+
+/* ============================= */
+/*  Search (Algolia placeholder) */
+/* ============================= */
+[data-theme='dark'] .DocSearch-Button {
+  background-color: #1a1718;
+  border: 1px solid #2a2627;
+}
+
+/* ============================= */
+/*  Feature section (home page)  */
+/* ============================= */
+[data-theme='dark'] .padding-vert--xl {
+  background-color: #0f0d0e;
+}
