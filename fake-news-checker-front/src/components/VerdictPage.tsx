@@ -25,6 +25,7 @@ interface VerdictPageProps {
   timestamp: Date;
   fontes: FonteInfo[];
   onNewVerification: () => void;
+  isAuthenticated: boolean;
   // campos NLI opcionais — não quebram quando ausentes
   nliAgregado?: string | null;
   nliScore?: number | null;
@@ -211,6 +212,7 @@ export function VerdictPage({
   timestamp,
   fontes,
   onNewVerification,
+  isAuthenticated,
   nliAgregado,
   nliScore,
   nliVotos,
@@ -236,25 +238,27 @@ export function VerdictPage({
       {/* Page body */}
       <div style={{ flex: 1, overflowY: "auto", padding: "32px" }}>
         <div style={{ maxWidth: "860px", margin: "0 auto" }}>
-          {/* Breadcrumb */}
-          <button
-            onClick={onNewVerification}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "none",
-              border: "none",
-              color: "var(--m3-primary)",
-              fontSize: "13px",
-              cursor: "pointer",
-              marginBottom: "16px",
-              padding: 0,
-            }}
-          >
-            <ArrowLeft size={14} />
-            Nova verificação
-          </button>
+          {/* Breadcrumb — visível apenas para usuários logados */}
+          {isAuthenticated && (
+            <button
+              onClick={onNewVerification}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "none",
+                border: "none",
+                color: "var(--m3-primary)",
+                fontSize: "13px",
+                cursor: "pointer",
+                marginBottom: "16px",
+                padding: 0,
+              }}
+            >
+              <ArrowLeft size={14} />
+              Nova verificação
+            </button>
+          )}
 
           <h1
             style={{
@@ -679,43 +683,49 @@ export function VerdictPage({
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <button
-              onClick={onNewVerification}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "12px 24px",
-                borderRadius: "12px",
-                border: "1px solid var(--m3-outline)",
-                backgroundColor: "transparent",
-                color: "var(--m3-on-surface)",
-                fontSize: "14px",
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              <RefreshCw size={16} />
-              Fazer nova verificação
-            </button>
-            <button
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "12px 24px",
-                borderRadius: "12px",
-                border: "none",
-                backgroundColor: "var(--m3-primary)",
-                color: "var(--m3-on-primary)",
-                fontSize: "14px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {result === "nao_verificavel" ? "Tentar com mais contexto" : "Ver evidências completas"}
-              <ArrowRight size={16} />
-            </button>
+            {/* Botão "Fazer nova verificação" — só para logados */}
+            {isAuthenticated && (
+              <button
+                onClick={onNewVerification}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "12px 24px",
+                  borderRadius: "12px",
+                  border: "1px solid var(--m3-outline)",
+                  backgroundColor: "transparent",
+                  color: "var(--m3-on-surface)",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                <RefreshCw size={16} />
+                Fazer nova verificação
+              </button>
+            )}
+            {/* "Tentar com mais contexto" só para logados; "Ver evidências" para todos */}
+            {(result !== "nao_verificavel" || isAuthenticated) && (
+              <button
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "12px 24px",
+                  borderRadius: "12px",
+                  border: "none",
+                  backgroundColor: "var(--m3-primary)",
+                  color: "var(--m3-on-primary)",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {result === "nao_verificavel" ? "Tentar com mais contexto" : "Ver evidências completas"}
+                <ArrowRight size={16} />
+              </button>
+            )}
           </div>
 
           <p style={{ textAlign: "center", fontSize: "12px", color: "var(--m3-on-surface-variant)", marginTop: "16px" }}>

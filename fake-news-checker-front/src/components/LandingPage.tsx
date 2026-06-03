@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   ShieldCheck,
   FileText,
@@ -12,11 +12,12 @@ import {
   Brain,
   Search,
   CheckCircle2,
+  Trash2,
 } from "lucide-react";
 
 interface LandingPageProps {
   onEnter: () => void;
-  onSubmit: (value: string, type: "text" | "link" | "image") => void;
+  onSubmit: (value: string, type: "text" | "link" | "image", file?: File) => void;
 }
 
 const STEPS = [
@@ -74,6 +75,9 @@ type TabType = "text" | "image" | "link";
 export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
   const [activeTab, setActiveTab] = useState<TabType>("text");
   const [inputValue, setInputValue] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const maxLength = 5000;
 
@@ -81,12 +85,52 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
     activeTab === "link"
       ? "Cole um link para verificar..."
       : activeTab === "image"
-        ? "Cole a URL da imagem..."
+        ? "Ou cole a URL de uma imagem pública..."
         : "Digite uma notícia, afirmação ou link que deseja verificar...";
 
+  // Cleanup objectURL on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    };
+  }, [imagePreviewUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+    setInputValue("");
+  };
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setImageFile(null);
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleClearImage = () => {
+    setImageFile(null);
+    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const canSubmit = activeTab === "image"
+    ? !!(imageFile || inputValue.trim())
+    : !!inputValue.trim();
+
   const handleSubmit = () => {
-    if (!inputValue.trim()) return;
-    onSubmit(inputValue, activeTab);
+    if (!canSubmit) return;
+    if (activeTab === "image" && imageFile) {
+      onSubmit("", "image", imageFile);
+      handleClearImage();
+    } else {
+      onSubmit(inputValue, activeTab);
+      setInputValue("");
+    }
   };
 
   return (
@@ -211,7 +255,7 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                 ).map(({ type, label, icon: Icon }, i) => (
                   <button
                     key={type}
-                    onClick={() => setActiveTab(type)}
+                    onClick={() => handleTabChange(type)}
                     style={{
                       flex: 1,
                       display: "flex",
@@ -235,48 +279,100 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                 ))}
               </div>
 
-              {/* Textarea */}
-              <div
-                style={{
-                  position: "relative",
-                  borderRadius: "10px",
-                  marginBottom: "12px",
-                  backgroundColor: "#070707",
-                  border: "1px solid #252525",
-                }}
-              >
-                <textarea
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={placeholder}
-                  maxLength={maxLength}
-                  rows={3}
-                  className="w-full bg-transparent resize-none outline-none"
+              {/* Image upload area */}
+              {activeTab === "image" && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    style={{ display: "none" }}
+                    onChange={handleFileChange}
+                  />
+                  {imageFile ? (
+                    <div style={{ margin: "12px 14px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid #252525", backgroundColor: "rgba(255,255,255,0.04)" }}>
+                      {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: "13px", color: "#F2EEED", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
+                        <p style={{ fontSize: "11px", color: "#9E9E9E" }}>Imagem pronta para análise</p>
+                      </div>
+                      <button onClick={handleClearImage} style={{ background: "none", border: "none", cursor: "pointer", color: "#9E9E9E", padding: "4px", display: "flex" }}>
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        margin: "12px 14px",
+                        padding: "20px 12px",
+                        borderRadius: "10px",
+                        border: "1px dashed #555",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        color: "#9E9E9E",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        transition: "border-color 0.15s, background 0.15s",
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#FF3784"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,55,132,0.05)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#555"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    >
+                      <Image size={22} style={{ marginBottom: "2px" }} />
+                      <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
+                      <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Textarea — hidden when image file selected */}
+              {!(activeTab === "image" && imageFile) && (
+                <div
                   style={{
-                    color: "#F2EEED",
-                    fontSize: "13px",
-                    padding: "14px 14px 32px 14px",
-                    display: "block",
-                  }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: "8px",
-                    right: "12px",
-                    fontSize: "11px",
-                    color: "#555",
-                    whiteSpace: "nowrap",
+                    position: "relative",
+                    borderRadius: "10px",
+                    marginBottom: "12px",
+                    backgroundColor: "#070707",
+                    border: "1px solid #252525",
                   }}
                 >
-                  {inputValue.length} / {maxLength.toLocaleString("pt-BR")} caracteres
-                </span>
-              </div>
+                  <textarea
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={placeholder}
+                    maxLength={maxLength}
+                    rows={activeTab === "image" ? 2 : 3}
+                    className="w-full bg-transparent resize-none outline-none"
+                    style={{
+                      color: "#F2EEED",
+                      fontSize: "13px",
+                      padding: "14px 14px 32px 14px",
+                      display: "block",
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: "8px",
+                      right: "12px",
+                      fontSize: "11px",
+                      color: "#555",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {inputValue.length} / {maxLength.toLocaleString("pt-BR")} caracteres
+                  </span>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button
                 onClick={handleSubmit}
-                disabled={!inputValue.trim()}
+                disabled={!canSubmit}
                 style={{
                   width: "100%",
                   display: "flex",
@@ -288,14 +384,14 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                   fontSize: "15px",
                   fontWeight: 600,
                   border: "none",
-                  cursor: inputValue.trim() ? "pointer" : "not-allowed",
-                  opacity: inputValue.trim() ? 1 : 0.5,
+                  cursor: canSubmit ? "pointer" : "not-allowed",
+                  opacity: canSubmit ? 1 : 0.5,
                   backgroundColor: "#FF3784",
                   color: "#F2EEED",
                   transition: "opacity 0.15s",
                 }}
-                onMouseEnter={(e) => { if (inputValue.trim()) e.currentTarget.style.opacity = "0.88"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = inputValue.trim() ? "1" : "0.5"; }}
+                onMouseEnter={(e) => { if (canSubmit) e.currentTarget.style.opacity = "0.88"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = canSubmit ? "1" : "0.5"; }}
               >
                 Checkar informação
                 <ArrowRight size={17} />
