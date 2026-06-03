@@ -16,6 +16,7 @@ import { LoginPage } from "./components/LoginPage";
 import { RegisterPage } from "./components/RegisterPage";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
 import { GuestLimitModal } from "./components/GuestLimitModal";
+import { MeuPlanoPage } from "./components/MeuPlanoPage";
 import { postVerificar, mapVerificarToResult } from "./services/api";
 import {
   apiCriarVerificacao,
@@ -123,7 +124,7 @@ export default function App() {
       setCurrentPage("home");
     }
     if (!isAuthenticated && APP_PAGES.includes(currentPage as AppPage)) {
-      setCurrentPage("login");
+      setCurrentPage("landing");
     }
   }, [isAuthenticated, isLoading, currentPage]);
 
@@ -358,8 +359,8 @@ export default function App() {
         )}
         {appPage === "history" && <HistoryPage />}
         {appPage === "results" && <ResultsPage onNavigate={(p) => setCurrentPage(p)} />}
-        {appPage === "plan" && <PlaceholderPage title={PAGE_TITLES.plan} />}
-        {appPage === "settings" && <SettingsPage />}
+        {appPage === "plan" && <MeuPlanoPage />}
+        {appPage === "settings" && <SettingsPage onNavigatePlan={() => setCurrentPage("plan")} />}
       </div>
     );
   };
