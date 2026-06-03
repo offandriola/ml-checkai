@@ -123,7 +123,7 @@ export default function App() {
       setCurrentPage("home");
     }
     if (!isAuthenticated && APP_PAGES.includes(currentPage as AppPage)) {
-      setCurrentPage("login");
+      setCurrentPage("landing");
     }
   }, [isAuthenticated, isLoading, currentPage]);
 
