@@ -105,6 +105,7 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
+    setInputValue("");
     setImageFile(null);
     if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
     setImagePreviewUrl(null);
@@ -119,7 +120,7 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
   };
 
   const canSubmit = activeTab === "image"
-    ? !!(imageFile || inputValue.trim())
+    ? !!imageFile
     : !!inputValue.trim();
 
   const handleSubmit = () => {
@@ -150,7 +151,7 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
               display: "grid",
               gridTemplateColumns: "5fr 7fr",
               gap: "48px",
-              alignItems: "center",
+              alignItems: "start",
             }}
           >
             {/* Esquerda: Copy */}
@@ -279,95 +280,98 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                 ))}
               </div>
 
-              {/* Image upload area */}
-              {activeTab === "image" && (
-                <>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    style={{ display: "none" }}
-                    onChange={handleFileChange}
-                  />
-                  {imageFile ? (
-                    <div style={{ margin: "12px 14px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid #252525", backgroundColor: "rgba(255,255,255,0.04)" }}>
-                      {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: "13px", color: "#F2EEED", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
-                        <p style={{ fontSize: "11px", color: "#9E9E9E" }}>Imagem pronta para análise</p>
+              {/* Conteúdo variável — altura fixa para evitar layout shift */}
+              <div style={{ minHeight: "140px" }}>
+                {/* Image upload area */}
+                {activeTab === "image" && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      style={{ display: "none" }}
+                      onChange={handleFileChange}
+                    />
+                    {imageFile ? (
+                      <div style={{ margin: "12px 14px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid #252525", backgroundColor: "rgba(255,255,255,0.04)" }}>
+                        {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: "13px", color: "#F2EEED", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
+                          <p style={{ fontSize: "11px", color: "#9E9E9E" }}>Imagem pronta para análise</p>
+                        </div>
+                        <button onClick={handleClearImage} style={{ background: "none", border: "none", cursor: "pointer", color: "#9E9E9E", padding: "4px", display: "flex" }}>
+                          <Trash2 size={15} />
+                        </button>
                       </div>
-                      <button onClick={handleClearImage} style={{ background: "none", border: "none", cursor: "pointer", color: "#9E9E9E", padding: "4px", display: "flex" }}>
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{
-                        margin: "12px 14px",
-                        padding: "20px 12px",
-                        borderRadius: "10px",
-                        border: "1px dashed #555",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                        color: "#9E9E9E",
-                        fontSize: "13px",
-                        cursor: "pointer",
-                        transition: "border-color 0.15s, background 0.15s",
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#FF3784"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,55,132,0.05)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#555"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                    >
-                      <Image size={22} style={{ marginBottom: "2px" }} />
-                      <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
-                      <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
-                    </div>
-                  )}
-                </>
-              )}
+                    ) : (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          margin: "12px 14px",
+                          padding: "20px 12px",
+                          borderRadius: "10px",
+                          border: "1px dashed #555",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          color: "#9E9E9E",
+                          fontSize: "13px",
+                          cursor: "pointer",
+                          transition: "border-color 0.15s, background 0.15s",
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#FF3784"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,55,132,0.05)"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#555"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                      >
+                        <Image size={22} style={{ marginBottom: "2px" }} />
+                        <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
+                        <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
+                      </div>
+                    )}
+                  </>
+                )}
 
-              {/* Textarea — hidden when image file selected */}
-              {!(activeTab === "image" && imageFile) && (
-                <div
-                  style={{
-                    position: "relative",
-                    borderRadius: "10px",
-                    marginBottom: "12px",
-                    backgroundColor: "#070707",
-                    border: "1px solid #252525",
-                  }}
-                >
-                  <textarea
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={placeholder}
-                    maxLength={maxLength}
-                    rows={activeTab === "image" ? 2 : 3}
-                    className="w-full bg-transparent resize-none outline-none"
+                {/* Textarea — hidden when tab is image */}
+                {activeTab !== "image" && (
+                  <div
                     style={{
-                      color: "#F2EEED",
-                      fontSize: "13px",
-                      padding: "14px 14px 32px 14px",
-                      display: "block",
-                    }}
-                  />
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: "8px",
-                      right: "12px",
-                      fontSize: "11px",
-                      color: "#555",
-                      whiteSpace: "nowrap",
+                      position: "relative",
+                      borderRadius: "10px",
+                      marginBottom: "12px",
+                      backgroundColor: "#070707",
+                      border: "1px solid #252525",
                     }}
                   >
-                    {inputValue.length} / {maxLength.toLocaleString("pt-BR")} caracteres
-                  </span>
-                </div>
-              )}
+                    <textarea
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder={placeholder}
+                      maxLength={maxLength}
+                      rows={3}
+                      className="w-full bg-transparent resize-none outline-none"
+                      style={{
+                        color: "#F2EEED",
+                        fontSize: "13px",
+                        padding: "14px 14px 32px 14px",
+                        display: "block",
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: "8px",
+                        right: "12px",
+                        fontSize: "11px",
+                        color: "#555",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {inputValue.length} / {maxLength.toLocaleString("pt-BR")} caracteres
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {/* Submit Button */}
               <button
