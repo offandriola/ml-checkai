@@ -125,7 +125,7 @@ export default function App() {
     if (!isAuthenticated && APP_PAGES.includes(currentPage as AppPage)) {
       setCurrentPage("login");
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, currentPage]);
 
   const handleSubmit = async (value: string, attachmentType: "text" | "link" | "image" = "text", imageFile?: File) => {
     // ── Bloquear segunda verificação de visitante ──
@@ -353,6 +353,7 @@ export default function App() {
           <HomePage
             verifications={verifications.filter(v => v.id === activeVerificationId)}
             onSubmit={handleSubmit}
+            onNavigateHistory={() => setCurrentPage("history")}
           />
         )}
         {appPage === "history" && <HistoryPage />}

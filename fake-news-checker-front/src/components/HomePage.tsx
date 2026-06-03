@@ -47,6 +47,7 @@ interface Verification {
 interface HomePageProps {
   verifications: Verification[];
   onSubmit: (value: string, type: TabType, file?: File) => void;
+  onNavigateHistory?: () => void;
 }
 
 const RESULT_CONFIG = {
@@ -112,7 +113,7 @@ function DonutGauge({ percentage }: { percentage: number }) {
   );
 }
 
-export function HomePage({ verifications, onSubmit }: HomePageProps) {
+export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePageProps) {
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("text");
   const [inputValue, setInputValue] = useState("");
@@ -544,18 +545,6 @@ export function HomePage({ verifications, onSubmit }: HomePageProps) {
             <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
               Verificações recentes
             </p>
-            <button
-              style={{
-                fontSize: "12px",
-                color: "var(--m3-primary)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
-            >
-              Ver todos
-            </button>
           </div>
 
           {recentItems.length === 0 ? (
@@ -604,6 +593,7 @@ export function HomePage({ verifications, onSubmit }: HomePageProps) {
                 }}
               >
                 <button
+                  onClick={() => onNavigateHistory?.()}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -616,7 +606,7 @@ export function HomePage({ verifications, onSubmit }: HomePageProps) {
                     fontWeight: 500,
                   }}
                 >
-                  Abrir todas as consultas
+                  Abrir histórico completo
                   <ArrowRight size={13} />
                 </button>
               </div>
