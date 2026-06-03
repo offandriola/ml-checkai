@@ -110,7 +110,7 @@ function FeedbackMsg({ type, msg }: { type: "success" | "error"; msg: string }) 
 }
 
 // ─── Aba Principal ────────────────────────────────────────────────────────────
-function AbaP({ initials }: { initials: string }) {
+function AbaP({ initials, onNavigatePlan }: { initials: string; onNavigatePlan?: () => void }) {
   const { user, token, updateUser, logout } = useAuth();
   const [form, setForm] = useState({ name: user?.nome ?? "", email: user?.email ?? "" });
   const [saveMsg, setSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -250,11 +250,14 @@ function AbaP({ initials }: { initials: string }) {
             </div>
             <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>Acesse todos os recursos avançados do CheckAI.</p>
           </div>
-          <button style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--m3-primary)",
-            backgroundColor: "transparent", color: "var(--m3-primary)", fontSize: "13px", fontWeight: 500, cursor: "pointer",
-          }}>
+          <button
+            onClick={onNavigatePlan}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--m3-primary)",
+              backgroundColor: "transparent", color: "var(--m3-primary)", fontSize: "13px", fontWeight: 500, cursor: "pointer",
+            }}
+          >
             Gerenciar plano
             <ChevronRight size={14} />
           </button>
@@ -374,7 +377,11 @@ function AbaSeguranca() {
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export function SettingsPage() {
+interface SettingsPageProps {
+  onNavigatePlan?: () => void;
+}
+
+export function SettingsPage({ onNavigatePlan }: SettingsPageProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>("principal");
 
@@ -408,7 +415,7 @@ export function SettingsPage() {
         })}
       </div>
 
-      {activeTab === "principal" && <AbaP initials={initials} />}
+      {activeTab === "principal" && <AbaP initials={initials} onNavigatePlan={onNavigatePlan} />}
       {activeTab === "seguranca" && <AbaSeguranca />}
       {activeTab !== "principal" && activeTab !== "seguranca" && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "40vh", gap: "8px" }}>
