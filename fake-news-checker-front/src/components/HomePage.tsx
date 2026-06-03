@@ -164,6 +164,7 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
+    setInputValue("");
     setImageFile(null);
     if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
     setImagePreviewUrl(null);
@@ -171,7 +172,7 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
   };
 
   const canSubmit = activeTab === "image"
-    ? !!(imageFile || inputValue.trim())
+    ? !!imageFile
     : !!inputValue.trim();
 
   const handleSubmit = () => {
@@ -263,93 +264,96 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
             ))}
           </div>
 
-          {/* Image upload area */}
-          {activeTab === "image" && (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                style={{ display: "none" }}
-                onChange={handleFileChange}
-              />
-              {imageFile ? (
-                <div style={{ margin: "12px 16px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--m3-outline)", backgroundColor: "rgba(255,255,255,0.04)" }}>
-                  {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: "13px", color: "var(--m3-on-surface)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
-                    <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Imagem pronta para análise</p>
+          {/* Conteúdo variável — altura fixa para evitar layout shift */}
+          <div style={{ minHeight: "230px" }}>
+            {/* Image upload area */}
+            {activeTab === "image" && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+                {imageFile ? (
+                  <div style={{ margin: "12px 16px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--m3-outline)", backgroundColor: "rgba(255,255,255,0.04)" }}>
+                    {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: "13px", color: "var(--m3-on-surface)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
+                      <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Imagem pronta para análise</p>
+                    </div>
+                    <button onClick={handleClear} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--m3-on-surface-variant)", padding: "4px", display: "flex" }}>
+                      <Trash2 size={15} />
+                    </button>
                   </div>
-                  <button onClick={handleClear} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--m3-on-surface-variant)", padding: "4px", display: "flex" }}>
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    margin: "12px 16px",
-                    padding: "20px 12px",
-                    borderRadius: "10px",
-                    border: "1px dashed var(--m3-outline)",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    color: "var(--m3-on-surface-variant)",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    transition: "border-color 0.15s, background 0.15s",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--m3-primary)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(var(--m3-primary-rgb, 103,80,164),0.05)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--m3-outline)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                >
-                  <Image size={22} style={{ marginBottom: "2px" }} />
-                  <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
-                  <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
-                </div>
-              )}
-            </>
-          )}
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      margin: "12px 16px",
+                      padding: "20px 12px",
+                      borderRadius: "10px",
+                      border: "1px dashed var(--m3-outline)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      color: "var(--m3-on-surface-variant)",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      transition: "border-color 0.15s, background 0.15s",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--m3-primary)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(var(--m3-primary-rgb, 103,80,164),0.05)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--m3-outline)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                  >
+                    <Image size={22} style={{ marginBottom: "2px" }} />
+                    <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
+                    <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
+                  </div>
+                )}
+              </>
+            )}
 
-          {/* Textarea — hidden when image file selected */}
-          {!(activeTab === "image" && imageFile) && (
-            <div style={{ position: "relative" }}>
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={placeholder}
-                maxLength={maxLength}
-                rows={activeTab === "image" ? 3 : 7}
-                style={{
-                  width: "100%",
-                  padding: "16px",
-                  paddingBottom: "32px",
-                  backgroundColor: "transparent",
-                  border: "none",
-                  outline: "none",
-                  resize: "none",
-                  fontSize: "14px",
-                  color: "var(--m3-on-surface)",
-                  lineHeight: "1.6",
-                  display: "block",
-                  boxSizing: "border-box",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  bottom: "10px",
-                  right: "14px",
-                  fontSize: "11px",
-                  color: "var(--m3-on-surface-variant)",
-                }}
-              >
-                {inputValue.length}/{maxLength.toLocaleString("pt-BR")} caracteres
-              </span>
-            </div>
-          )}
+            {/* Textarea — hidden when tab is image */}
+            {activeTab !== "image" && (
+              <div style={{ position: "relative" }}>
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={placeholder}
+                  maxLength={maxLength}
+                  rows={7}
+                  style={{
+                    width: "100%",
+                    padding: "16px",
+                    paddingBottom: "32px",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    outline: "none",
+                    resize: "none",
+                    fontSize: "14px",
+                    color: "var(--m3-on-surface)",
+                    lineHeight: "1.6",
+                    display: "block",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: "10px",
+                    right: "14px",
+                    fontSize: "11px",
+                    color: "var(--m3-on-surface-variant)",
+                  }}
+                >
+                  {inputValue.length}/{maxLength.toLocaleString("pt-BR")} caracteres
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Action Buttons */}

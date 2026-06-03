@@ -205,8 +205,8 @@ export function CheckoutPage({ onAlterar }: CheckoutPageProps) {
                 ))}
               </div>
 
-              {/* Conteúdo */}
-              <div style={{ padding: "28px" }}>
+              {/* Conteúdo — altura fixa para evitar layout shift */}
+              <div style={{ padding: "28px", minHeight: "420px" }}>
 
                 {/* ── PIX ── */}
                 {activeTab === "pix" && (
@@ -227,14 +227,14 @@ export function CheckoutPage({ onAlterar }: CheckoutPageProps) {
                         <p style={{ fontSize: "12px", color: "#9E9E9E", marginBottom: "16px", lineHeight: 1.5 }}>
                           Escaneie o QR Code com o app do seu banco.
                         </p>
-                        {/* QR placeholder */}
+                        {/* QR Code */}
                         <div
                           style={{
                             width: "160px",
                             height: "160px",
                             borderRadius: "10px",
                             border: "1px solid #252525",
-                            backgroundColor: "#F2EEED",
+                            backgroundColor: "#FFFFFF",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -242,22 +242,43 @@ export function CheckoutPage({ onAlterar }: CheckoutPageProps) {
                           }}
                         >
                           <svg width="140" height="140" viewBox="0 0 140 140" fill="none">
-                            {/* QR code pattern mock */}
-                            {[0,1,2,3,4,5,6].map(row =>
-                              [0,1,2,3,4,5,6].map(col => {
-                                const isCorner = (row < 2 && col < 2) || (row < 2 && col > 4) || (row > 4 && col < 2);
-                                const val = ((row * 7 + col) % 3 === 0 || isCorner) ? 1 : 0;
-                                return val ? (
-                                  <rect key={`${row}-${col}`} x={10 + col * 18} y={10 + row * 18} width={15} height={15} fill="#000000" />
-                                ) : null;
-                              })
-                            )}
-                            <rect x={10} y={10} width={50} height={50} fill="none" stroke="#000" strokeWidth={4} />
-                            <rect x={80} y={10} width={50} height={50} fill="none" stroke="#000" strokeWidth={4} />
-                            <rect x={10} y={80} width={50} height={50} fill="none" stroke="#000" strokeWidth={4} />
-                            <rect x={22} y={22} width={26} height={26} fill="#000" />
-                            <rect x={92} y={22} width={26} height={26} fill="#000" />
-                            <rect x={22} y={92} width={26} height={26} fill="#000" />
+                            {/* Finder patterns (3 corners) */}
+                            {/* Top-left */}
+                            <rect x="8" y="8" width="38" height="38" fill="none" stroke="#000" strokeWidth="4" />
+                            <rect x="14" y="14" width="26" height="26" fill="none" stroke="#000" strokeWidth="2" />
+                            <rect x="20" y="20" width="14" height="14" fill="#000" />
+                            {/* Top-right */}
+                            <rect x="94" y="8" width="38" height="38" fill="none" stroke="#000" strokeWidth="4" />
+                            <rect x="100" y="14" width="26" height="26" fill="none" stroke="#000" strokeWidth="2" />
+                            <rect x="106" y="20" width="14" height="14" fill="#000" />
+                            {/* Bottom-left */}
+                            <rect x="8" y="94" width="38" height="38" fill="none" stroke="#000" strokeWidth="4" />
+                            <rect x="14" y="100" width="26" height="26" fill="none" stroke="#000" strokeWidth="2" />
+                            <rect x="20" y="106" width="14" height="14" fill="#000" />
+                            {/* Data modules (pseudo-random pattern) */}
+                            {[
+                              [52,8],[56,12],[60,8],[64,16],[68,8],[72,12],[76,16],[80,8],[84,12],
+                              [52,20],[60,24],[68,20],[76,24],[84,20],
+                              [52,32],[56,36],[64,32],[72,36],[80,32],[84,36],
+                              [8,52],[12,56],[16,52],[20,56],[24,52],[28,56],[32,52],[36,56],
+                              [52,52],[56,56],[60,52],[64,56],[68,52],[72,56],[76,52],[80,56],[84,52],
+                              [94,52],[98,56],[102,52],[106,56],[110,52],[114,56],[118,52],[122,56],
+                              [8,64],[16,68],[24,64],[32,68],
+                              [52,64],[60,68],[68,64],[76,68],[84,64],
+                              [94,64],[102,68],[110,64],[118,68],[126,64],
+                              [8,76],[12,80],[20,76],[28,80],[36,76],
+                              [52,76],[56,80],[64,76],[72,80],[80,76],[84,80],
+                              [94,76],[98,80],[106,76],[114,80],[122,76],
+                              [52,88],[56,92],[60,88],[64,92],[68,88],[72,92],[76,88],[80,92],[84,88],
+                              [94,94],[98,98],[102,94],[106,98],[110,94],[118,98],[122,94],[126,98],
+                              [94,106],[102,110],[110,106],[118,110],[126,106],
+                              [94,118],[98,122],[106,118],[114,122],[122,118],[126,122],
+                            ].map(([x, y], i) => (
+                              <rect key={i} x={x} y={y} width="4" height="4" fill="#000" />
+                            ))}
+                            {/* Alignment pattern (center-ish) */}
+                            <rect x="62" y="62" width="16" height="16" fill="none" stroke="#000" strokeWidth="2" />
+                            <rect x="67" y="67" width="6" height="6" fill="#000" />
                           </svg>
                         </div>
                       </div>
@@ -530,7 +551,7 @@ export function CheckoutPage({ onAlterar }: CheckoutPageProps) {
                         </div>
                       </div>
 
-                      {/* Barras do boleto */}
+                      {/* Barras do boleto — padrão ITF realista */}
                       <div
                         style={{
                           height: "52px",
@@ -538,19 +559,24 @@ export function CheckoutPage({ onAlterar }: CheckoutPageProps) {
                           overflow: "hidden",
                           marginBottom: "10px",
                           display: "flex",
-                          gap: "2px",
+                          gap: "0",
                         }}
                       >
-                        {Array.from({ length: 60 }).map((_, i) => (
-                          <div
-                            key={i}
-                            style={{
-                              flex: (i % 4 === 0 || i % 7 === 0) ? "2 0 0" : "1 0 0",
-                              backgroundColor: "#000",
-                              opacity: i % 3 === 0 ? 1 : 0,
-                            }}
-                          />
-                        ))}
+                        {(() => {
+                          // Gera padrão de barras alternadas largo/fino similar a ITF
+                          const pattern = "1101001011010110100101101001011010010110101100101101001011010010110100101101011001011010010110100101101001011010110010110100101";
+                          return pattern.split("").map((bit, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                flex: "0 0 auto",
+                                width: bit === "1" ? "2px" : "1px",
+                                backgroundColor: i % 2 === 0 ? "#000" : "transparent",
+                                height: "100%",
+                              }}
+                            />
+                          ));
+                        })()}
                       </div>
 
                       <p
