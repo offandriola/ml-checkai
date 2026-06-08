@@ -21,10 +21,6 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# claude code
-.claude/
-.claude*
-
 # ambiente virtual
 .venv/
 venv/
