@@ -70,6 +70,7 @@ const APP_PAGES: AppPage[] = ["home", "history", "results", "plan", "settings"];
 const PUBLIC_PAGES: FullPage[] = [
   "landing", "sobre", "planos", "checkout",
   "login", "register", "forgot-password",
+  "processing", "verdict",
 ];
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -274,6 +275,14 @@ export default function App() {
   };
 
   const handleNewVerification = () => {
+    if (!isAuthenticated) {
+      if (guestHasVerified) {
+        setShowGuestLimitModal(true);
+      } else {
+        setCurrentPage("landing");
+      }
+      return;
+    }
     setActiveVerificationId(null);
     setCurrentPage("home");
   };

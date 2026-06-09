@@ -728,28 +728,26 @@ export function VerdictPage({
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            {/* Botão "Fazer nova verificação" — só para logados */}
-            {isAuthenticated && (
-              <button
-                onClick={onNewVerification}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "12px 24px",
-                  borderRadius: "12px",
-                  border: "1px solid var(--m3-outline)",
-                  backgroundColor: "transparent",
-                  color: "var(--m3-on-surface)",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
-              >
-                <RefreshCw size={16} />
-                Fazer nova verificação
-              </button>
-            )}
+            {/* Botão "Fazer nova verificação" — para todos os usuários */}
+            <button
+              onClick={onNewVerification}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "12px 24px",
+                borderRadius: "12px",
+                border: "1px solid var(--m3-outline)",
+                backgroundColor: "transparent",
+                color: "var(--m3-on-surface)",
+                fontSize: "14px",
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              <RefreshCw size={16} />
+              Fazer nova verificação
+            </button>
             {/* "Tentar com mais contexto" só para logados; "Ver evidências" para todos */}
             {(result !== "nao_verificavel" || isAuthenticated) && (
               <button

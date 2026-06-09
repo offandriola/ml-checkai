@@ -56,7 +56,8 @@ export function PlanosPage({ onAssinar }: PlanosPageProps) {
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
               gap: "20px",
-              alignItems: "start",
+              alignItems: "stretch",
+              paddingTop: "20px",
             }}
           >
             {/* Gratuito */}
