@@ -53,7 +53,11 @@ interface HomePageProps {
 const RESULT_CONFIG = {
   verdadeira: { label: "Real", color: "#4caf50", bg: "rgba(76,175,80,0.15)" },
   falsa: { label: "Falso", color: "#f44336", bg: "rgba(244,67,54,0.15)" },
-  nao_verificavel: { label: "Inconclusivo", color: "#ff9800", bg: "rgba(255,152,0,0.15)" },
+  nao_verificavel: {
+    label: "Inconclusivo",
+    color: "#ff9800",
+    bg: "rgba(255,152,0,0.15)",
+  },
 };
 
 const QUICK_MODELS = [
@@ -93,34 +97,64 @@ function DonutGauge({ percentage }: { percentage: number }) {
   const offset = circ * (1 - percentage / 100);
   return (
     <svg width="100" height="100" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
       <circle
-        cx="50" cy="50" r={r} fill="none"
-        stroke="var(--m3-primary)" strokeWidth="10"
+        cx="50"
+        cy="50"
+        r={r}
+        fill="none"
+        stroke="rgba(255,255,255,0.06)"
+        strokeWidth="10"
+      />
+      <circle
+        cx="50"
+        cy="50"
+        r={r}
+        fill="none"
+        stroke="var(--m3-primary)"
+        strokeWidth="10"
         strokeDasharray={circ}
         strokeDashoffset={offset}
         strokeLinecap="round"
         transform="rotate(-90 50 50)"
         style={{ transition: "stroke-dashoffset 0.8s ease" }}
       />
-      <text x="50" y="46" textAnchor="middle" fill="var(--m3-on-surface)" fontSize="16" fontWeight="700">
+      <text
+        x="50"
+        y="46"
+        textAnchor="middle"
+        fill="var(--m3-on-surface)"
+        fontSize="16"
+        fontWeight="700"
+      >
         {percentage}%
       </text>
-      <text x="50" y="62" textAnchor="middle" fill="var(--m3-on-surface-variant)" fontSize="9">
+      <text
+        x="50"
+        y="62"
+        textAnchor="middle"
+        fill="var(--m3-on-surface-variant)"
+        fontSize="9"
+      >
         Alta confiança
       </text>
     </svg>
   );
 }
 
-export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePageProps) {
+export function HomePage({
+  verifications,
+  onSubmit,
+  onNavigateHistory,
+}: HomePageProps) {
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("text");
   const [inputValue, setInputValue] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [resumo, setResumo] = useState<ResumoApiResponse | null>(null);
-  const [recentFromApi, setRecentFromApi] = useState<{ id: string; title: string; result: ResultType }[]>([]);
+  const [recentFromApi, setRecentFromApi] = useState<
+    { id: string; title: string; result: ResultType }[]
+  >([]);
   const [loadingResumo, setLoadingResumo] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const maxLength = 5000;
@@ -143,16 +177,18 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
             id: String(v.id),
             title: v.texto_verificado,
             result: mapResultado(v.resultado),
-          }))
+          })),
         );
       })
       .catch(() => {});
   }, [token]);
 
   const placeholder =
-    activeTab === "link" ? "Cole um link para verificar..."
-    : activeTab === "image" ? "Ou cole a URL de uma imagem pública..."
-    : "Este é a notícia, afirmação ou conteúdo que deseja verificar...";
+    activeTab === "link"
+      ? "Cole um link para verificar..."
+      : activeTab === "image"
+        ? "Ou cole a URL de uma imagem pública..."
+        : "Este é a notícia, afirmação ou conteúdo que deseja verificar...";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -171,9 +207,7 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const canSubmit = activeTab === "image"
-    ? !!imageFile
-    : !!inputValue.trim();
+  const canSubmit = activeTab === "image" ? !!imageFile : !!inputValue.trim();
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -197,13 +231,20 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const recentItems = recentFromApi.length > 0
-    ? recentFromApi
-    : verifications.slice(-5).reverse().map(v => ({ id: v.id, title: v.content, result: v.result ?? "nao_verificavel" as ResultType }));
+  const recentItems =
+    recentFromApi.length > 0
+      ? recentFromApi
+      : verifications
+          .slice(-5)
+          .reverse()
+          .map((v) => ({
+            id: v.id,
+            title: v.content,
+            result: v.result ?? ("nao_verificavel" as ResultType),
+          }));
 
   return (
     <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
-
       {/* ── Main Form Area ── */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <h1
@@ -216,7 +257,13 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
         >
           Nova verificação
         </h1>
-        <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", marginBottom: "20px" }}>
+        <p
+          style={{
+            fontSize: "13px",
+            color: "var(--m3-on-surface-variant)",
+            marginBottom: "20px",
+          }}
+        >
           Cole um texto, escreva uma pergunta ou informe um link para análise.
         </p>
 
@@ -231,14 +278,17 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
           }}
         >
           {/* Tabs */}
-          <div style={{ display: "flex", borderBottom: "1px solid var(--m3-outline)" }}>
-            {(
-              [
-                { type: "text" as TabType, label: "Todo", icon: FileText },
-                { type: "image" as TabType, label: "Imagem", icon: Image },
-                { type: "link" as TabType, label: "Link", icon: Link2 },
-              ]
-            ).map(({ type, label, icon: Icon }, i) => (
+          <div
+            style={{
+              display: "flex",
+              borderBottom: "1px solid var(--m3-outline)",
+            }}
+          >
+            {[
+              { type: "text" as TabType, label: "Texto", icon: FileText },
+              { type: "image" as TabType, label: "Imagem", icon: Image },
+              { type: "link" as TabType, label: "Link", icon: Link2 },
+            ].map(({ type, label, icon: Icon }, i) => (
               <button
                 key={type}
                 onClick={() => handleTabChange(type)}
@@ -253,8 +303,14 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                   borderRight: i < 2 ? "1px solid var(--m3-outline)" : "none",
                   cursor: "pointer",
                   backgroundColor: "transparent",
-                  color: activeTab === type ? "var(--m3-primary)" : "var(--m3-on-surface-variant)",
-                  borderBottom: activeTab === type ? "2px solid var(--m3-primary)" : "2px solid transparent",
+                  color:
+                    activeTab === type
+                      ? "var(--m3-primary)"
+                      : "var(--m3-on-surface-variant)",
+                  borderBottom:
+                    activeTab === type
+                      ? "2px solid var(--m3-primary)"
+                      : "2px solid transparent",
                   transition: "color 0.15s",
                 }}
               >
@@ -277,13 +333,64 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                   onChange={handleFileChange}
                 />
                 {imageFile ? (
-                  <div style={{ margin: "12px 16px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--m3-outline)", backgroundColor: "rgba(255,255,255,0.04)" }}>
-                    {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
+                  <div
+                    style={{
+                      margin: "12px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      border: "1px solid var(--m3-outline)",
+                      backgroundColor: "rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    {imagePreviewUrl && (
+                      <img
+                        src={imagePreviewUrl}
+                        alt="preview"
+                        style={{
+                          width: "52px",
+                          height: "52px",
+                          objectFit: "cover",
+                          borderRadius: "6px",
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: "13px", color: "var(--m3-on-surface)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
-                      <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Imagem pronta para análise</p>
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          color: "var(--m3-on-surface)",
+                          fontWeight: 500,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {imageFile.name}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--m3-on-surface-variant)",
+                        }}
+                      >
+                        Imagem pronta para análise
+                      </p>
                     </div>
-                    <button onClick={handleClear} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--m3-on-surface-variant)", padding: "4px", display: "flex" }}>
+                    <button
+                      onClick={handleClear}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--m3-on-surface-variant)",
+                        padding: "4px",
+                        display: "flex",
+                      }}
+                    >
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -305,12 +412,26 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                       cursor: "pointer",
                       transition: "border-color 0.15s, background 0.15s",
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--m3-primary)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(var(--m3-primary-rgb, 103,80,164),0.05)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--m3-outline)"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor =
+                        "var(--m3-primary)";
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        "rgba(var(--m3-primary-rgb, 103,80,164),0.05)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor =
+                        "var(--m3-outline)";
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        "transparent";
+                    }}
                   >
                     <Image size={22} style={{ marginBottom: "2px" }} />
-                    <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
-                    <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
+                    <span style={{ fontWeight: 500 }}>
+                      Clique para selecionar imagem
+                    </span>
+                    <span style={{ fontSize: "11px" }}>
+                      PNG, JPG ou WEBP até 5 MB
+                    </span>
                   </div>
                 )}
               </>
@@ -349,7 +470,8 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                     color: "var(--m3-on-surface-variant)",
                   }}
                 >
-                  {inputValue.length}/{maxLength.toLocaleString("pt-BR")} caracteres
+                  {inputValue.length}/{maxLength.toLocaleString("pt-BR")}{" "}
+                  caracteres
                 </span>
               </div>
             )}
@@ -413,14 +535,26 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
             marginBottom: "28px",
           }}
         >
-          <ShieldCheck size={13} style={{ color: "var(--m3-on-surface-variant)" }} />
-          <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>
+          <ShieldCheck
+            size={13}
+            style={{ color: "var(--m3-on-surface-variant)" }}
+          />
+          <p
+            style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}
+          >
             Seus dados são protegidos e não compartilhados com terceiros.
           </p>
         </div>
 
         {/* Tips + Quick Models Row */}
-        <div style={{ display: "flex", gap: "16px", marginBottom: "28px", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "16px",
+            marginBottom: "28px",
+            flexWrap: "wrap",
+          }}
+        >
           {/* Tips */}
           <div
             style={{
@@ -431,9 +565,22 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
               border: "1px solid var(--m3-outline)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "12px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+                marginBottom: "12px",
+              }}
+            >
               <Lightbulb size={15} style={{ color: "var(--m3-primary)" }} />
-              <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
+              <p
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "var(--m3-on-surface)",
+                }}
+              >
                 Dicas para verificar
               </p>
             </div>
@@ -450,7 +597,9 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                     marginBottom: i < TIPS.length - 1 ? "6px" : 0,
                   }}
                 >
-                  <span style={{ color: "var(--m3-primary)", flexShrink: 0 }}>•</span>
+                  <span style={{ color: "var(--m3-primary)", flexShrink: 0 }}>
+                    •
+                  </span>
                   {tip}
                 </li>
               ))}
@@ -467,13 +616,32 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
               border: "1px solid var(--m3-outline)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "12px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+                marginBottom: "12px",
+              }}
+            >
               <Zap size={15} style={{ color: "var(--m3-primary)" }} />
-              <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
+              <p
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "var(--m3-on-surface)",
+                }}
+              >
                 Modelos rápidos
               </p>
             </div>
-            <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)", marginBottom: "10px" }}>
+            <p
+              style={{
+                fontSize: "11px",
+                color: "var(--m3-on-surface-variant)",
+                marginBottom: "10px",
+              }}
+            >
               Use um template para cada tipo de consulta:
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -511,14 +679,47 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
           }}
         >
           {[
-            { label: "verificações realizadas", value: resumo ? String(resumo.total_verificacoes) : "—", icon: BarChartIcon },
-            { label: "reais", value: resumo ? String(resumo.total_reais) : "—", icon: CheckCircle2 },
-            { label: "falsas", value: resumo ? String(resumo.total_falsas) : "—", icon: XCircle },
+            {
+              label: "verificações realizadas",
+              value: resumo ? String(resumo.total_verificacoes) : "—",
+              icon: BarChartIcon,
+            },
+            {
+              label: "reais",
+              value: resumo ? String(resumo.total_reais) : "—",
+              icon: CheckCircle2,
+            },
+            {
+              label: "falsas",
+              value: resumo ? String(resumo.total_falsas) : "—",
+              icon: XCircle,
+            },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Icon size={15} style={{ color: "var(--m3-on-surface-variant)" }} />
-              <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--m3-on-surface)" }}>{value}</span>
-              <span style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>{label}</span>
+            <div
+              key={label}
+              style={{ display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <Icon
+                size={15}
+                style={{ color: "var(--m3-on-surface-variant)" }}
+              />
+              <span
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  color: "var(--m3-on-surface)",
+                }}
+              >
+                {value}
+              </span>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--m3-on-surface-variant)",
+                }}
+              >
+                {label}
+              </span>
             </div>
           ))}
         </div>
@@ -526,7 +727,6 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
 
       {/* ── Right Panel ── */}
       <div style={{ width: "300px", flexShrink: 0 }}>
-
         {/* Recent Verifications */}
         <div
           style={{
@@ -546,14 +746,25 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
               borderBottom: "1px solid var(--m3-outline)",
             }}
           >
-            <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
+            <p
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "var(--m3-on-surface)",
+              }}
+            >
               Verificações recentes
             </p>
           </div>
 
           {recentItems.length === 0 ? (
             <div style={{ padding: "24px 16px", textAlign: "center" }}>
-              <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)" }}>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "var(--m3-on-surface-variant)",
+                }}
+              >
                 Nenhuma verificação ainda.
               </p>
             </div>
@@ -567,7 +778,10 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                     alignItems: "center",
                     gap: "10px",
                     padding: "10px 16px",
-                    borderBottom: i < recentItems.length - 1 ? "1px solid var(--m3-outline)" : "none",
+                    borderBottom:
+                      i < recentItems.length - 1
+                        ? "1px solid var(--m3-outline)"
+                        : "none",
                     cursor: "pointer",
                   }}
                 >
@@ -586,7 +800,13 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                     </p>
                     <ResultBadge result={item.result} />
                   </div>
-                  <ChevronRight size={14} style={{ color: "var(--m3-on-surface-variant)", flexShrink: 0 }} />
+                  <ChevronRight
+                    size={14}
+                    style={{
+                      color: "var(--m3-on-surface-variant)",
+                      flexShrink: 0,
+                    }}
+                  />
                 </div>
               ))}
 
@@ -627,31 +847,103 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
             padding: "16px",
           }}
         >
-          <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--m3-on-surface)", marginBottom: "16px" }}>
+          <p
+            style={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "var(--m3-on-surface)",
+              marginBottom: "16px",
+            }}
+          >
             Seu resumo
           </p>
 
           {loadingResumo ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 0", gap: "8px", color: "var(--m3-on-surface-variant)" }}>
-              <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px 0",
+                gap: "8px",
+                color: "var(--m3-on-surface-variant)",
+              }}
+            >
+              <Loader2
+                size={16}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
               <span style={{ fontSize: "13px" }}>Carregando...</span>
             </div>
           ) : resumo ? (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                  marginBottom: "16px",
+                }}
+              >
                 <DonutGauge percentage={Math.round(resumo.percentual_reais)} />
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
                   <div>
-                    <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Verificações realizadas</p>
-                    <p style={{ fontSize: "18px", fontWeight: 700, color: "var(--m3-on-surface)" }}>{resumo.total_verificacoes}</p>
+                    <p
+                      style={{
+                        fontSize: "11px",
+                        color: "var(--m3-on-surface-variant)",
+                      }}
+                    >
+                      Verificações realizadas
+                    </p>
+                    <p
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: 700,
+                        color: "var(--m3-on-surface)",
+                      }}
+                    >
+                      {resumo.total_verificacoes}
+                    </p>
                   </div>
                   <div>
-                    <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>Falsas</p>
-                    <p style={{ fontSize: "16px", fontWeight: 700, color: "#f44336" }}>
+                    <p
+                      style={{
+                        fontSize: "11px",
+                        color: "var(--m3-on-surface-variant)",
+                      }}
+                    >
+                      Falsas
+                    </p>
+                    <p
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: 700,
+                        color: "#f44336",
+                      }}
+                    >
                       {resumo.total_falsas}
                       {resumo.total_verificacoes > 0 && (
-                        <span style={{ fontSize: "12px", fontWeight: 400, color: "var(--m3-on-surface-variant)" }}>
-                          {" "}({Math.round(resumo.total_falsas / resumo.total_verificacoes * 100)}%)
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 400,
+                            color: "var(--m3-on-surface-variant)",
+                          }}
+                        >
+                          {" "}
+                          (
+                          {Math.round(
+                            (resumo.total_falsas / resumo.total_verificacoes) *
+                              100,
+                          )}
+                          %)
                         </span>
                       )}
                     </p>
@@ -667,16 +959,35 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
                   border: "1px solid var(--m3-outline)",
                 }}
               >
-                <p style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)", marginBottom: "2px" }}>
+                <p
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--m3-on-surface-variant)",
+                    marginBottom: "2px",
+                  }}
+                >
                   Inconclusivas
                 </p>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "#f59e0b" }}>
+                <p
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: 700,
+                    color: "#f59e0b",
+                  }}
+                >
                   {resumo.total_inconclusivas}
                 </p>
               </div>
             </>
           ) : (
-            <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", textAlign: "center", padding: "16px 0" }}>
+            <p
+              style={{
+                fontSize: "13px",
+                color: "var(--m3-on-surface-variant)",
+                textAlign: "center",
+                padding: "16px 0",
+              }}
+            >
               Faça sua primeira verificação para ver seu resumo.
             </p>
           )}
@@ -687,9 +998,25 @@ export function HomePage({ verifications, onSubmit, onNavigateHistory }: HomePag
 }
 
 // Inline icon for stats (BarChart2 renamed to avoid shadowing)
-function BarChartIcon({ size, style }: { size: number; style?: CSSProperties }) {
+function BarChartIcon({
+  size,
+  style,
+}: {
+  size: number;
+  style?: CSSProperties;
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={style}
+    >
       <line x1="18" y1="20" x2="18" y2="10" />
       <line x1="12" y1="20" x2="12" y2="4" />
       <line x1="6" y1="20" x2="6" y2="14" />

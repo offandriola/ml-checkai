@@ -238,7 +238,7 @@ export function LoginPage({ onGoToRegister, onGoToForgotPassword, onLoginSuccess
   return (
     <div
       className="dark min-h-screen flex flex-col"
-      style={{ backgroundColor: "var(--m3-surface)" }}
+      style={{ backgroundColor: "#070707" }}
     >
       {/* Main */}
       <main
@@ -350,7 +350,7 @@ export function LoginPage({ onGoToRegister, onGoToForgotPassword, onLoginSuccess
                 type="submit"
                 disabled={isLoading || !email.trim() || !senha.trim()}
                 className="w-full py-4 rounded-xl text-base font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
-                style={{ backgroundColor: "var(--m3-primary)", color: "var(--m3-on-primary)" }}
+                style={{ backgroundColor: "var(--m3-primary)", color: "#F2EEED" }}
               >
                 {isLoading ? "Entrando..." : "Entrar"}
               </button>
@@ -452,11 +452,11 @@ export function LoginPage({ onGoToRegister, onGoToForgotPassword, onLoginSuccess
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-5" style={{ borderColor: "var(--m3-outline)" }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-center gap-2">
-          <ShieldCheck size={14} style={{ color: "var(--m3-on-surface-variant)" }} />
-          <p className="text-sm" style={{ color: "var(--m3-on-surface-variant)" }}>
-            Cobrança mensal • Cancelamento simples • Seus dados protegidos
+      <footer style={{ borderTop: "1px solid #252525", padding: "20px 0" }}>
+        <div className="max-w-7xl mx-auto px-4 md:px-8" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+          <ShieldCheck size={15} style={{ color: "#555" }} />
+          <p style={{ fontSize: "13px", color: "#555", margin: 0 }}>
+            Seus dados protegidos • Histórico completo • Resultados detalhados
           </p>
         </div>
       </footer>

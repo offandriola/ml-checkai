@@ -85,15 +85,21 @@ def _nli_e_forte(
     """
     Verifica se o NLI tem sinal forte o suficiente para alterar o veredito.
 
-    Quando ranking_fontes foi aplicado (alguma fonte tem tipo_fonte), usa apenas
+    Quando ranking_fontes foi aplicado (alguma fonte tem tipo_fonte), prioriza
     fontes de tipo independente (oficial, jornalistica, fact_checking) de alta
-    confiabilidade. Quando não foi aplicado, cai no fallback por nli_votos.
+    confiabilidade. Se não houver fontes independentes suficientes (ex.: query
+    factual retorna só Wikipedia/enciclopédia), usa votos NLI totais como
+    fallback — evita silenciar o NLI em afirmações factuais simples.
     """
     if not nli_score or nli_score < _SCORE_NLI_FORTE:
         return False
     ranking_aplicado = any("tipo_fonte" in f for f in fontes)
     if ranking_aplicado:
-        return _contar_votos_confiaveis(fontes, label) >= _MIN_VOTOS_CONFIAVEIS
+        votos_confiaveis = _contar_votos_confiaveis(fontes, label)
+        if votos_confiaveis >= _MIN_VOTOS_CONFIAVEIS:
+            return True
+        # Fallback: sem fontes independentes em número suficiente, usa votos totais
+        return (nli_votos or {}).get(label, 0) >= _MIN_VOTOS_CONFIAVEIS
     return (nli_votos or {}).get(label, 0) >= _MIN_VOTOS_CONFIAVEIS
 
 

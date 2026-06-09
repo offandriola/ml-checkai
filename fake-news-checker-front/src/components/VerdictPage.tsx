@@ -5,6 +5,7 @@ import {
   HelpCircle,
   ArrowLeft,
   FileText,
+  Image,
   ExternalLink,
   ArrowRight,
   RefreshCw,
@@ -26,6 +27,7 @@ interface VerdictPageProps {
   fontes: FonteInfo[];
   onNewVerification: () => void;
   isAuthenticated: boolean;
+  nomeArquivo?: string;
   // campos NLI opcionais — não quebram quando ausentes
   nliAgregado?: string | null;
   nliScore?: number | null;
@@ -213,6 +215,7 @@ export function VerdictPage({
   fontes,
   onNewVerification,
   isAuthenticated,
+  nomeArquivo,
   nliAgregado,
   nliScore,
   nliVotos,
@@ -221,6 +224,9 @@ export function VerdictPage({
 }: VerdictPageProps) {
   const cfg = VERDICT_CONFIG[result];
   const { Icon } = cfg;
+
+  // OCR falhou quando: tipo imagem + resultado inconclusivo + sem fontes
+  const ocrFalhou = type === "image" && result === "nao_verificavel" && fontes.length === 0;
 
   const typeLabel = type === "text" ? "Texto" : type === "link" ? "Link" : "Imagem";
   const dateStr = timestamp.toLocaleDateString("pt-BR") + " - " + timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -406,7 +412,7 @@ export function VerdictPage({
               borderRadius: "12px",
               backgroundColor: "var(--m3-surface-container)",
               border: "1px solid var(--m3-outline)",
-              borderLeft: "3px solid #f59e0b",
+              borderLeft: `3px solid ${ocrFalhou ? "#f59e0b" : type === "image" ? "var(--m3-primary)" : "#f59e0b"}`,
               padding: "16px 20px",
               marginBottom: "12px",
             }}
@@ -417,17 +423,56 @@ export function VerdictPage({
                 fontWeight: 600,
                 color: "var(--m3-on-surface-variant)",
                 letterSpacing: "0.05em",
-                marginBottom: "8px",
+                marginBottom: "10px",
               }}
             >
               CONTEÚDO ANALISADO
             </p>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-              <FileText size={16} style={{ color: "var(--m3-on-surface-variant)", flexShrink: 0, marginTop: "2px" }} />
-              <p style={{ fontSize: "14px", color: "var(--m3-on-surface)", lineHeight: 1.5 }}>
-                {content}
-              </p>
-            </div>
+
+            {type === "image" ? (
+              <div>
+                {/* Linha: tipo + arquivo */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                    <Image size={13} style={{ color: "var(--m3-on-surface-variant)", flexShrink: 0 }} />
+                    <span style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", fontWeight: 500 }}>
+                      Tipo: Imagem
+                    </span>
+                  </div>
+                  {nomeArquivo && (
+                    <span style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", fontStyle: "italic" }}>
+                      · Arquivo: {nomeArquivo}
+                    </span>
+                  )}
+                </div>
+
+                {/* Label do OCR */}
+                <p style={{ fontSize: "11px", fontWeight: 600, color: "var(--m3-on-surface-variant)", letterSpacing: "0.04em", marginBottom: "6px" }}>
+                  {ocrFalhou ? "RESULTADO DO OCR:" : "TEXTO EXTRAÍDO VIA OCR:"}
+                </p>
+
+                {/* Conteúdo OCR */}
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: ocrFalhou ? "#f59e0b" : "var(--m3-on-surface)",
+                    lineHeight: 1.6,
+                    fontStyle: ocrFalhou ? "italic" : "normal",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {content}
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                <FileText size={16} style={{ color: "var(--m3-on-surface-variant)", flexShrink: 0, marginTop: "2px" }} />
+                <p style={{ fontSize: "14px", color: "var(--m3-on-surface)", lineHeight: 1.5 }}>
+                  {content}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Analysis summary */}

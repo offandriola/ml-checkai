@@ -13,7 +13,9 @@ import {
   Search,
   CheckCircle2,
   Trash2,
+  Lock,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -73,6 +75,7 @@ const FEATURES = [
 type TabType = "text" | "image" | "link";
 
 export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("text");
   const [inputValue, setInputValue] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -119,7 +122,11 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const canSubmit = activeTab === "image"
+  // Imagem e link exigem login para convidados
+  const tabBloqueada = !isAuthenticated && (activeTab === "image" || activeTab === "link");
+  const canSubmit = tabBloqueada
+    ? false
+    : activeTab === "image"
     ? !!imageFile
     : !!inputValue.trim();
 
@@ -280,65 +287,148 @@ export function LandingPage({ onEnter, onSubmit }: LandingPageProps) {
                 ))}
               </div>
 
-              {/* Conteúdo variável — altura fixa para evitar layout shift */}
-              <div style={{ minHeight: "140px" }}>
-                {/* Image upload area */}
+              {/* Conteúdo variável — altura FIXA para todas as abas não empurrarem o layout */}
+              <div style={{ height: "140px", overflow: "hidden" }}>
+
+                {/* ── Aba Imagem ── */}
                 {activeTab === "image" && (
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,image/gif"
-                      style={{ display: "none" }}
-                      onChange={handleFileChange}
-                    />
-                    {imageFile ? (
-                      <div style={{ margin: "12px 14px", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid #252525", backgroundColor: "rgba(255,255,255,0.04)" }}>
-                        {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: "13px", color: "#F2EEED", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
-                          <p style={{ fontSize: "11px", color: "#9E9E9E" }}>Imagem pronta para análise</p>
+                  isAuthenticated ? (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        style={{ display: "none" }}
+                        onChange={handleFileChange}
+                      />
+                      {imageFile ? (
+                        <div style={{ margin: "12px 0", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "10px", border: "1px solid #252525", backgroundColor: "rgba(255,255,255,0.04)" }}>
+                          {imagePreviewUrl && <img src={imagePreviewUrl} alt="preview" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }} />}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: "13px", color: "#F2EEED", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{imageFile.name}</p>
+                            <p style={{ fontSize: "11px", color: "#9E9E9E" }}>Imagem pronta para análise</p>
+                          </div>
+                          <button onClick={handleClearImage} style={{ background: "none", border: "none", cursor: "pointer", color: "#9E9E9E", padding: "4px", display: "flex" }}>
+                            <Trash2 size={15} />
+                          </button>
                         </div>
-                        <button onClick={handleClearImage} style={{ background: "none", border: "none", cursor: "pointer", color: "#9E9E9E", padding: "4px", display: "flex" }}>
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => fileInputRef.current?.click()}
+                      ) : (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            height: "100%",
+                            borderRadius: "10px",
+                            border: "1px dashed #555",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            color: "#9E9E9E",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            transition: "border-color 0.15s, background 0.15s",
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#FF3784"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,55,132,0.05)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#555"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                        >
+                          <Image size={22} style={{ marginBottom: "2px" }} />
+                          <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
+                          <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Convidado: bloqueio imagem — ocupa exatamente a altura do container */
+                    <div
+                      style={{
+                        height: "100%",
+                        borderRadius: "10px",
+                        border: "1px solid #252525",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        textAlign: "center",
+                        padding: "0 16px",
+                      }}
+                    >
+                      <Lock size={20} style={{ color: "#FF3784" }} />
+                      <p style={{ fontSize: "13px", color: "#F2EEED", fontWeight: 500, margin: 0 }}>
+                        Para analisar imagens, entre na sua conta.
+                      </p>
+                      <button
+                        onClick={onEnter}
                         style={{
-                          margin: "12px 14px",
-                          padding: "20px 12px",
-                          borderRadius: "10px",
-                          border: "1px dashed #555",
-                          display: "flex",
-                          flexDirection: "column",
+                          display: "inline-flex",
                           alignItems: "center",
-                          justifyContent: "center",
                           gap: "6px",
-                          color: "#9E9E9E",
+                          padding: "7px 18px",
+                          borderRadius: "8px",
+                          border: "1px solid #FF3784",
+                          background: "transparent",
+                          color: "#FF3784",
                           fontSize: "13px",
+                          fontWeight: 600,
                           cursor: "pointer",
-                          transition: "border-color 0.15s, background 0.15s",
                         }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#FF3784"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,55,132,0.05)"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#555"; (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                       >
-                        <Image size={22} style={{ marginBottom: "2px" }} />
-                        <span style={{ fontWeight: 500 }}>Clique para selecionar imagem</span>
-                        <span style={{ fontSize: "11px" }}>PNG, JPG ou WEBP até 5 MB</span>
-                      </div>
-                    )}
-                  </>
+                        Entrar
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  )
                 )}
 
-                {/* Textarea — hidden when tab is image */}
-                {activeTab !== "image" && (
+                {/* ── Aba Link (convidado) ── */}
+                {activeTab === "link" && !isAuthenticated && (
+                  <div
+                    style={{
+                      height: "100%",
+                      borderRadius: "10px",
+                      border: "1px solid #252525",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      textAlign: "center",
+                      padding: "0 16px",
+                    }}
+                  >
+                    <Lock size={20} style={{ color: "#FF3784" }} />
+                    <p style={{ fontSize: "13px", color: "#F2EEED", fontWeight: 500, margin: 0 }}>
+                      Para analisar links, entre na sua conta.
+                    </p>
+                    <button
+                      onClick={onEnter}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "7px 18px",
+                        borderRadius: "8px",
+                        border: "1px solid #FF3784",
+                        background: "transparent",
+                        color: "#FF3784",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Entrar
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Textarea: Texto (sempre) ou Link (logado) ── */}
+                {(activeTab === "text" || (activeTab === "link" && isAuthenticated)) && (
                   <div
                     style={{
                       position: "relative",
                       borderRadius: "10px",
-                      marginBottom: "12px",
                       backgroundColor: "#070707",
                       border: "1px solid #252525",
                     }}

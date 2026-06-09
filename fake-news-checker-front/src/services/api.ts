@@ -51,6 +51,7 @@ export function mapVerificarToResult(api: VerificarPublicoApi | null): {
   details: string;
   confidence: number;
   fontes: FonteInfo[];
+  textoVerificado: string;
   nliAgregado?: string | null;
   nliScore?: number | null;
   nliVotos?: NliVotos | null;
@@ -63,6 +64,7 @@ export function mapVerificarToResult(api: VerificarPublicoApi | null): {
       details: "Não foi possível verificar",
       confidence: 0,
       fontes: [],
+      textoVerificado: "",
     };
   }
   const conf = Math.round(api.confianca * 100);
@@ -71,6 +73,7 @@ export function mapVerificarToResult(api: VerificarPublicoApi | null): {
     details: `Confiança: ${conf}%`,
     confidence: conf,
     fontes: api.fontes ?? [],
+    textoVerificado: api.texto_verificado ?? "",
     nliAgregado: api.nli_resultado_agregado,
     nliScore: api.nli_score_agregado,
     nliVotos: api.nli_votos,

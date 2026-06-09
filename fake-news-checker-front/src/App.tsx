@@ -66,6 +66,12 @@ const PAGE_TITLES: Record<AppPage, string> = {
 
 const APP_PAGES: AppPage[] = ["home", "history", "results", "plan", "settings"];
 
+// Páginas acessíveis sem autenticação (tudo mais redireciona para landing ao sair)
+const PUBLIC_PAGES: FullPage[] = [
+  "landing", "sobre", "planos", "checkout",
+  "login", "register", "forgot-password",
+];
+
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div
@@ -106,6 +112,7 @@ export default function App() {
   const [verdictNliVotos, setVerdictNliVotos] = useState<NliVotos | null | undefined>(null);
   const [verdictDecisaoOrigem, setVerdictDecisaoOrigem] = useState<string | null | undefined>(null);
   const [verdictJustificativa, setVerdictJustificativa] = useState<string | null | undefined>(null);
+  const [verdictNomeArquivo, setVerdictNomeArquivo] = useState<string | null>(null);
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -123,12 +130,24 @@ export default function App() {
     if (isAuthenticated && currentPage === "landing") {
       setCurrentPage("home");
     }
-    if (!isAuthenticated && APP_PAGES.includes(currentPage as AppPage)) {
+    // Redireciona QUALQUER página privada (inclui "verdict", "processing", etc.)
+    if (!isAuthenticated && !PUBLIC_PAGES.includes(currentPage)) {
+      setVerdictContent("");
+      setVerdictNomeArquivo(null);
+      setVerdictFontes([]);
+      setVerdictResult("nao_verificavel");
       setCurrentPage("landing");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading, currentPage]);
 
   const handleSubmit = async (value: string, attachmentType: "text" | "link" | "image" = "text", imageFile?: File) => {
+    // ── Imagem e link exigem login ──
+    if (!isAuthenticated && (attachmentType === "image" || attachmentType === "link")) {
+      setShowGuestLimitModal(true);
+      return;
+    }
+
     // ── Bloquear segunda verificação de visitante ──
     if (!isAuthenticated && guestHasVerified) {
       setShowGuestLimitModal(true);
@@ -149,6 +168,7 @@ export default function App() {
     setVerdictContent(displayContent);
     setVerdictType(attachmentType);
     setVerdictTimestamp(ts);
+    setVerdictNomeArquivo(imageFile?.name ?? null);
     setVerdictReady(false);
     setVerifications(prev => [...prev, newVerification]);
     setActiveVerificationId(newVerification.id);
@@ -166,6 +186,7 @@ export default function App() {
       details: string;
       confidence: number;
       fontes: FonteInfo[];
+      textoVerificado: string;
       nliAgregado?: string | null;
       nliScore?: number | null;
       nliVotos?: NliVotos | null;
@@ -194,6 +215,7 @@ export default function App() {
       details: string;
       confidence: number;
       fontes: FonteInfo[];
+      textoVerificado: string;
       nliAgregado?: string | null;
       nliScore?: number | null;
       nliVotos?: NliVotos | null;
@@ -209,6 +231,10 @@ export default function App() {
       setVerdictNliVotos(mapped.nliVotos);
       setVerdictDecisaoOrigem(mapped.decisaoOrigem);
       setVerdictJustificativa(mapped.justificativa);
+      // Para imagens, substitui o placeholder pelo texto real extraído pelo OCR
+      if (attachmentType === "image" && mapped.textoVerificado) {
+        setVerdictContent(mapped.textoVerificado);
+      }
       setVerifications(prev =>
         prev.map(v =>
           v.id === newVerification.id
@@ -338,6 +364,7 @@ export default function App() {
           fontes={verdictFontes}
           onNewVerification={handleNewVerification}
           isAuthenticated={isAuthenticated}
+          nomeArquivo={verdictNomeArquivo ?? undefined}
           nliAgregado={verdictNliAgregado}
           nliScore={verdictNliScore}
           nliVotos={verdictNliVotos}

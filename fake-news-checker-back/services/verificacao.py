@@ -177,21 +177,38 @@ def executar_verificacao(texto: str, tipo: str = "texto") -> dict:
     }
 
 
-def executar_verificacao_imagem(conteudo: bytes) -> dict:
+def executar_verificacao_imagem(conteudo: bytes, nome_arquivo: str | None = None) -> dict:
     """
     Recebe bytes de uma imagem, extrai texto via OCR e classifica.
     Usado pelo endpoint multipart /verificacoes/imagem.
     """
+    nome_log = nome_arquivo or "<sem nome>"
+    logger.info("OCR: processando '%s' (%d bytes)", nome_log, len(conteudo))
+
     texto_ocr = extrair_texto_imagem_bytes(conteudo)
+
     if not texto_ocr:
+        logger.warning("OCR: nenhum texto legível extraído de '%s'", nome_log)
+        justificativa = "Não foi possível identificar texto legível na imagem enviada."
         return {
-            "texto_verificado": "[Imagem enviada para análise]",
+            "texto_verificado": justificativa,
             "tipo": "imagem",
             "resultado": "INCONCLUSIVO",
             "confianca": CONFIANCA_ALINHAMENTO_FRACO,
             "modelo_ativo": "nao",
             "fontes": [],
+            "nli_resultado_agregado": None,
+            "nli_score_agregado": None,
+            "nli_votos": None,
+            "decisao_origem": None,
+            "justificativa_decisao": justificativa,
         }
+
+    logger.info(
+        "OCR: extraídos %d chars de '%s' — início: %.80r",
+        len(texto_ocr), nome_log, texto_ocr[:80],
+    )
+    logger.info("OCR: enviando %d chars para o pipeline de verificação", len(texto_ocr))
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         fut_fontes = pool.submit(buscar_fontes, texto_ocr)
@@ -199,7 +216,12 @@ def executar_verificacao_imagem(conteudo: bytes) -> dict:
         fontes = fut_fontes.result()
         resultado_ml = fut_ml.result()
 
+    fontes = ranquear_fontes(fontes, max_fontes=5)
     _enriquecer_fontes_com_artigos(fontes)
+
+    nli_resultado_agregado, nli_score_agregado, nli_votos = _enriquecer_fontes_com_nli(
+        texto_ocr, fontes
+    )
 
     classificacao, confianca, _ = reconciliar_com_fontes(
         texto_ocr,
@@ -212,21 +234,35 @@ def executar_verificacao_imagem(conteudo: bytes) -> dict:
     if resultado == "INCONCLUSIVO" and confianca < CONFIANCA_ALINHAMENTO_FRACO:
         confianca = CONFIANCA_ALINHAMENTO_FRACO
 
+    veredito = decidir_veredito_final(
+        resultado_atual=resultado,
+        confianca_atual=confianca,
+        nli_resultado_agregado=nli_resultado_agregado,
+        nli_score_agregado=nli_score_agregado,
+        nli_votos=nli_votos,
+        fontes=fontes,
+    )
+
     return {
-        "texto_verificado": "[Imagem enviada para análise]",
+        "texto_verificado": texto_ocr,
         "tipo": "imagem",
-        "resultado": resultado,
-        "confianca": confianca,
+        "resultado": veredito["resultado"],
+        "confianca": veredito["confianca"],
         "modelo_ativo": "sim" if resultado_ml["modelo_ativo"] else "nao",
         "fontes": fontes,
+        "nli_resultado_agregado": nli_resultado_agregado,
+        "nli_score_agregado": nli_score_agregado,
+        "nli_votos": nli_votos,
+        "decisao_origem": veredito["decisao_origem"],
+        "justificativa_decisao": veredito["justificativa_decisao"],
     }
 
 
 def criar_verificacao_por_imagem(
-    db: Session, usuario_id: int, conteudo: bytes
+    db: Session, usuario_id: int, conteudo: bytes, nome_arquivo: str | None = None
 ) -> Verificacao:
     """Processa imagem via OCR, classifica e salva no histórico."""
-    dados = executar_verificacao_imagem(conteudo)
+    dados = executar_verificacao_imagem(conteudo, nome_arquivo)
 
     verificacao = Verificacao(
         usuario_id=usuario_id,

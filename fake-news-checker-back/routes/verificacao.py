@@ -5,8 +5,12 @@
 # usuário autenticado. Todas exigem token JWT válido.
 # ==============================================================================
 
+import logging
+
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from database import get_db
 from db_models.user import User
@@ -62,8 +66,15 @@ async def criar_por_imagem(
     usuario_atual: User = Depends(get_usuario_atual),
     db: Session = Depends(get_db),
 ) -> VerificacaoResponse:
+    logger.info(
+        "Upload de imagem recebido: '%s' (content-type: %s)",
+        imagem.filename, imagem.content_type,
+    )
     conteudo = await imagem.read()
-    verificacao = criar_verificacao_por_imagem(db, usuario_atual.id, conteudo)
+    logger.info("Upload de imagem: %d bytes lidos de '%s'", len(conteudo), imagem.filename)
+    verificacao = criar_verificacao_por_imagem(
+        db, usuario_atual.id, conteudo, imagem.filename
+    )
     return verificacao_para_response(verificacao)
 
 

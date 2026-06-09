@@ -66,6 +66,7 @@ export function mapVerificacaoApiItem(data: VerificacaoApiItem): {
   details: string;
   confidence: number;
   fontes: FonteInfo[];
+  textoVerificado: string;
   nliAgregado?: string | null;
   nliScore?: number | null;
   nliVotos?: NliVotos | null;
@@ -80,6 +81,7 @@ export function mapVerificacaoApiItem(data: VerificacaoApiItem): {
     details: `Confiança: ${conf}%`,
     confidence: conf,
     fontes: data.fontes ?? [],
+    textoVerificado: data.texto_verificado ?? "",
     nliAgregado: data.nli_resultado_agregado,
     nliScore: data.nli_score_agregado,
     nliVotos: data.nli_votos,
