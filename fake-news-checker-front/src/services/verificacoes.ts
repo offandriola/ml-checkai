@@ -8,7 +8,6 @@ export interface FonteInfo {
   snippet: string;
   fonte: string;
   texto_extraido?: string | null;
-  // campos NLI e ranking (opcionais — chegam quando o backend está atualizado)
   nli_label?: string | null;
   nli_score?: number | null;
   tipo_fonte?: string | null;
@@ -22,6 +21,14 @@ export interface NliVotos {
   NEUTRAL: number;
 }
 
+export interface FonteTopItem {
+  dominio: string;
+  total: number;
+  percentual: number;
+  tipo_fonte?: string | null;
+  confiabilidade?: string | null;
+}
+
 export interface VerificacaoApiItem {
   id: number;
   texto_verificado: string;
@@ -30,7 +37,6 @@ export interface VerificacaoApiItem {
   confianca: number;
   fontes: FonteInfo[];
   criado_em: string;
-  // campos NLI agregados (opcionais)
   nli_resultado_agregado?: string | null;
   nli_score_agregado?: number | null;
   nli_votos?: NliVotos | null;
@@ -52,6 +58,19 @@ export interface ListagemResponse {
   por_pagina: number;
   total_paginas: number;
   itens: VerificacaoApiItem[];
+}
+
+export type Periodo = "7d" | "30d" | "90d" | "all";
+
+export interface ListarVerificacoesOpts {
+  resultado?: "REAL" | "FALSO" | "INCONCLUSIVO";
+  tipo?: "texto" | "link" | "imagem";
+  busca?: string;
+  data_inicio?: string; // YYYY-MM-DD
+  data_fim?: string;    // YYYY-MM-DD
+  ordenacao?: "asc" | "desc";
+  pagina?: number;
+  por_pagina?: number;
 }
 
 // Converte resultado do backend para o tipo do frontend
@@ -100,7 +119,11 @@ function mapTipo(tipo: "text" | "link" | "image"): string {
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as { detail?: string }).detail ?? "Erro na requisição");
+    const detail = (body as { detail?: string | { mensagem?: string } }).detail;
+    if (detail && typeof detail === "object" && detail.mensagem) {
+      throw new Error(detail.mensagem);
+    }
+    throw new Error(typeof detail === "string" ? detail : "Erro na requisição");
   }
   return res.json();
 }
@@ -153,16 +176,15 @@ export async function apiCriarVerificacao(
 
 export async function apiListarVerificacoes(
   token: string,
-  opts: {
-    resultado?: "REAL" | "FALSO" | "INCONCLUSIVO";
-    busca?: string;
-    pagina?: number;
-    por_pagina?: number;
-  } = {}
+  opts: ListarVerificacoesOpts = {}
 ): Promise<ListagemResponse> {
   const params = new URLSearchParams();
   if (opts.resultado) params.set("resultado", opts.resultado);
+  if (opts.tipo) params.set("tipo", opts.tipo);
   if (opts.busca) params.set("busca", opts.busca);
+  if (opts.data_inicio) params.set("data_inicio", opts.data_inicio);
+  if (opts.data_fim) params.set("data_fim", opts.data_fim);
+  if (opts.ordenacao) params.set("ordenacao", opts.ordenacao);
   if (opts.pagina) params.set("pagina", String(opts.pagina));
   if (opts.por_pagina) params.set("por_pagina", String(opts.por_pagina));
 
@@ -172,9 +194,81 @@ export async function apiListarVerificacoes(
   return handleResponse<ListagemResponse>(res);
 }
 
-export async function apiObterResumo(token: string): Promise<ResumoApiResponse> {
-  const res = await fetch(`${BASE}/resumo`, {
+export async function apiObterVerificacaoDetalhe(
+  token: string,
+  id: number
+): Promise<VerificacaoApiItem> {
+  const res = await fetch(`${BASE}/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse<VerificacaoApiItem>(res);
+}
+
+export async function apiObterResumo(
+  token: string,
+  periodo?: Periodo
+): Promise<ResumoApiResponse> {
+  const params = new URLSearchParams();
+  if (periodo && periodo !== "all") params.set("periodo", periodo);
+  const qs = params.toString() ? `?${params}` : "";
+  const res = await fetch(`${BASE}/resumo${qs}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse<ResumoApiResponse>(res);
+}
+
+export async function apiObterFontesTop(
+  token: string,
+  periodo?: Periodo,
+  limite = 5
+): Promise<FonteTopItem[]> {
+  const params = new URLSearchParams();
+  if (periodo && periodo !== "all") params.set("periodo", periodo);
+  params.set("limite", String(limite));
+  const res = await fetch(`${BASE}/fontes-top?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse<FonteTopItem[]>(res);
+}
+
+export interface PontoSerieTemporal {
+  label: string;
+  verdadeiras: number;
+  falsas: number;
+  inconclusivas: number;
+}
+
+export async function apiObterSerieTemporal(
+  token: string,
+  periodo: Periodo = "7d"
+): Promise<PontoSerieTemporal[]> {
+  const params = new URLSearchParams({ periodo });
+  const res = await fetch(`${BASE}/serie-temporal?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse<PontoSerieTemporal[]>(res);
+}
+
+export async function apiExportarVerificacoes(
+  token: string,
+  formato: "xlsx" | "csv",
+  opts: Omit<ListarVerificacoesOpts, "pagina" | "por_pagina"> = {}
+): Promise<Blob> {
+  const params = new URLSearchParams();
+  params.set("formato", formato);
+  if (opts.resultado) params.set("resultado", opts.resultado);
+  if (opts.tipo) params.set("tipo", opts.tipo);
+  if (opts.busca) params.set("busca", opts.busca);
+  if (opts.data_inicio) params.set("data_inicio", opts.data_inicio);
+  if (opts.data_fim) params.set("data_fim", opts.data_fim);
+  if (opts.ordenacao) params.set("ordenacao", opts.ordenacao);
+
+  const res = await fetch(`${BASE}/exportar?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { detail?: string }).detail ?? "Erro ao exportar");
+  }
+  return res.blob();
 }

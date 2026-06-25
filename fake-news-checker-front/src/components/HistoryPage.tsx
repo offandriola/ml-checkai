@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search,
   SlidersHorizontal,
@@ -7,10 +7,20 @@ import {
   ChevronLeft,
   ChevronDown,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   Loader2,
+  Download,
+  X,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { apiListarVerificacoes, mapResultado } from "../services/verificacoes";
+import {
+  apiListarVerificacoes,
+  apiExportarVerificacoes,
+  mapResultado,
+  type ListarVerificacoesOpts,
+} from "../services/verificacoes";
+import { VerificacaoDetalheModal } from "./VerificacaoDetalheModal";
 
 type ResultType = "verdadeira" | "falsa" | "nao_verificavel";
 
@@ -38,7 +48,7 @@ const TABS: { key: TabType; label: string; backendValue?: "REAL" | "FALSO" | "IN
   { key: "inconclusivas", label: "Inconclusivas", backendValue: "INCONCLUSIVO" },
 ];
 
-const ITEMS_PER_PAGE = 10;
+const POR_PAGINA_OPTS = [10, 25, 50];
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -72,42 +82,180 @@ function ResultBadge({ result }: { result: ResultType }) {
   );
 }
 
+// ── Filter panel ────────────────────────────────────────────────────────────
+
+interface FilterState {
+  tipo: "" | "texto" | "link" | "imagem";
+  data_inicio: string;
+  data_fim: string;
+}
+
+function FilterPanel({
+  filters,
+  onChange,
+  onClear,
+  onClose,
+}: {
+  filters: FilterState;
+  onChange: (f: FilterState) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const hasFilters = filters.tipo !== "" || filters.data_inicio !== "" || filters.data_fim !== "";
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "absolute",
+        top: "calc(100% + 8px)",
+        right: 0,
+        zIndex: 200,
+        width: 280,
+        background: "var(--m3-surface-container-high, #1e293b)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: 12,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--m3-on-surface)" }}>Filtros</span>
+        {hasFilters && (
+          <button onClick={onClear} style={{ background: "none", border: "none", color: "#60a5fa", fontSize: 12, cursor: "pointer", fontWeight: 500 }}>
+            Limpar
+          </button>
+        )}
+      </div>
+
+      {/* Tipo */}
+      <div>
+        <label style={{ fontSize: 11, color: "var(--m3-on-surface-variant)", display: "block", marginBottom: 6 }}>Tipo</label>
+        <select
+          value={filters.tipo}
+          onChange={(e) => onChange({ ...filters, tipo: e.target.value as FilterState["tipo"] })}
+          style={{
+            width: "100%", padding: "7px 10px", borderRadius: 8,
+            border: "1px solid rgba(255,255,255,0.15)",
+            background: "rgba(255,255,255,0.05)",
+            color: "var(--m3-on-surface)", fontSize: 13,
+          }}
+        >
+          <option value="">Todos</option>
+          <option value="texto">Texto</option>
+          <option value="link">Link</option>
+          <option value="imagem">Imagem</option>
+        </select>
+      </div>
+
+      {/* Período */}
+      <div>
+        <label style={{ fontSize: 11, color: "var(--m3-on-surface-variant)", display: "block", marginBottom: 6 }}>Período inicial</label>
+        <input
+          type="date"
+          value={filters.data_inicio}
+          onChange={(e) => onChange({ ...filters, data_inicio: e.target.value })}
+          style={{
+            width: "100%", padding: "7px 10px", borderRadius: 8, boxSizing: "border-box",
+            border: "1px solid rgba(255,255,255,0.15)",
+            background: "rgba(255,255,255,0.05)",
+            color: "var(--m3-on-surface)", fontSize: 13,
+          }}
+        />
+      </div>
+      <div>
+        <label style={{ fontSize: 11, color: "var(--m3-on-surface-variant)", display: "block", marginBottom: 6 }}>Período final</label>
+        <input
+          type="date"
+          value={filters.data_fim}
+          onChange={(e) => onChange({ ...filters, data_fim: e.target.value })}
+          style={{
+            width: "100%", padding: "7px 10px", borderRadius: 8, boxSizing: "border-box",
+            border: "1px solid rgba(255,255,255,0.15)",
+            background: "rgba(255,255,255,0.05)",
+            color: "var(--m3-on-surface)", fontSize: 13,
+          }}
+        />
+      </div>
+
+      <button
+        onClick={onClose}
+        style={{
+          padding: "8px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)",
+          background: "rgba(255,255,255,0.06)", color: "var(--m3-on-surface)",
+          fontSize: 13, cursor: "pointer", fontWeight: 500,
+        }}
+      >
+        Aplicar
+      </button>
+    </div>
+  );
+}
+
+// ── Main ────────────────────────────────────────────────────────────────────
+
 export function HistoryPage() {
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("todas");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [porPagina, setPorPagina] = useState(10);
+  const [ordenacao, setOrdenacao] = useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = useState<FilterState>({ tipo: "", data_inicio: "", data_fim: "" });
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [exportando, setExportando] = useState(false);
 
-  // Debounce do campo de busca
+  // Debounce busca
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(id);
   }, [search]);
 
-  // Reset da página ao mudar tab ou busca
+  // Reset página ao mudar filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, debouncedSearch]);
+  }, [activeTab, debouncedSearch, filters, porPagina, ordenacao]);
+
+  const buildOpts = useCallback((): ListarVerificacoesOpts => {
+    const tab = TABS.find((t) => t.key === activeTab);
+    return {
+      resultado: tab?.backendValue,
+      tipo: filters.tipo || undefined,
+      busca: debouncedSearch || undefined,
+      data_inicio: filters.data_inicio || undefined,
+      data_fim: filters.data_fim || undefined,
+      ordenacao,
+      pagina: currentPage,
+      por_pagina: porPagina,
+    };
+  }, [activeTab, debouncedSearch, filters, ordenacao, currentPage, porPagina]);
 
   const fetchHistory = useCallback(async () => {
     if (!token) return;
     setIsLoading(true);
     setError("");
     try {
-      const tab = TABS.find((t) => t.key === activeTab);
-      const data = await apiListarVerificacoes(token, {
-        resultado: tab?.backendValue,
-        busca: debouncedSearch || undefined,
-        pagina: currentPage,
-        por_pagina: ITEMS_PER_PAGE,
-      });
-
+      const data = await apiListarVerificacoes(token, buildOpts());
       setItems(
         data.itens.map((v) => ({
           id: v.id,
@@ -125,11 +273,41 @@ export function HistoryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, activeTab, debouncedSearch, currentPage]);
+  }, [token, buildOpts]);
 
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
+
+  const handleExportar = async (formato: "xlsx" | "csv") => {
+    if (!token || exportando) return;
+    setExportando(true);
+    try {
+      const tab = TABS.find((t) => t.key === activeTab);
+      const blob = await apiExportarVerificacoes(token, formato, {
+        resultado: tab?.backendValue,
+        tipo: filters.tipo || undefined,
+        busca: debouncedSearch || undefined,
+        data_inicio: filters.data_inicio || undefined,
+        data_fim: filters.data_fim || undefined,
+        ordenacao,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `checkai_historico.${formato}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert((e as Error).message ?? "Erro ao exportar.");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const clearFilters = () => setFilters({ tipo: "", data_inicio: "", data_fim: "" });
+
+  const hasActiveFilters = filters.tipo !== "" || filters.data_inicio !== "" || filters.data_fim !== "";
 
   const pageNumbers: (number | "...")[] = [];
   if (totalPages <= 5) {
@@ -138,8 +316,10 @@ export function HistoryPage() {
     pageNumbers.push(1, 2, 3, "...", totalPages);
   }
 
-  const start = total === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-  const end = Math.min(currentPage * ITEMS_PER_PAGE, total);
+  const start = total === 0 ? 0 : (currentPage - 1) * porPagina + 1;
+  const end = Math.min(currentPage * porPagina, total);
+
+  const SortIcon = ordenacao === "desc" ? ArrowDown : ArrowUp;
 
   return (
     <div style={{ maxWidth: "1100px" }}>
@@ -154,8 +334,8 @@ export function HistoryPage() {
           </p>
         </div>
 
-        {/* Search + Filter */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Search */}
           <div style={{
             display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px",
             borderRadius: "10px", backgroundColor: "var(--m3-surface-container)",
@@ -169,17 +349,63 @@ export function HistoryPage() {
               placeholder="Buscar por palavra-chave"
               style={{ background: "none", border: "none", outline: "none", fontSize: "13px", color: "var(--m3-on-surface)", width: "100%" }}
             />
+            {search && (
+              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--m3-on-surface-variant)", display: "flex", padding: 0 }}>
+                <X size={13} />
+              </button>
+            )}
           </div>
-          <button style={{
-            display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px",
-            borderRadius: "10px", border: "1px solid var(--m3-outline)",
-            backgroundColor: "var(--m3-surface-container)", color: "var(--m3-on-surface)",
-            fontSize: "13px", fontWeight: 500, cursor: "pointer",
-          }}>
-            <SlidersHorizontal size={15} />
-            Filtros
-            <ChevronDown size={13} style={{ color: "var(--m3-on-surface-variant)" }} />
-          </button>
+
+          {/* Filter button */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowFilterPanel((p) => !p)}
+              style={{
+                display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px",
+                borderRadius: "10px", border: `1px solid ${hasActiveFilters ? "var(--m3-primary)" : "var(--m3-outline)"}`,
+                backgroundColor: hasActiveFilters ? "rgba(var(--m3-primary-rgb,99,102,241),0.12)" : "var(--m3-surface-container)",
+                color: hasActiveFilters ? "var(--m3-primary)" : "var(--m3-on-surface)",
+                fontSize: "13px", fontWeight: 500, cursor: "pointer",
+              }}
+            >
+              <SlidersHorizontal size={15} />
+              Filtros
+              {hasActiveFilters && <span style={{ fontSize: 11, background: "var(--m3-primary)", color: "#fff", borderRadius: 10, padding: "0 6px", lineHeight: "18px" }}>!</span>}
+              <ChevronDown size={13} style={{ color: "var(--m3-on-surface-variant)" }} />
+            </button>
+
+            {showFilterPanel && (
+              <FilterPanel
+                filters={filters}
+                onChange={setFilters}
+                onClear={clearFilters}
+                onClose={() => setShowFilterPanel(false)}
+              />
+            )}
+          </div>
+
+          {/* Export button */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => handleExportar("xlsx")}
+              disabled={exportando}
+              title="Exportar como Excel (.xlsx)"
+              style={{
+                display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px",
+                borderRadius: "10px", border: "1px solid var(--m3-outline)",
+                backgroundColor: "var(--m3-surface-container)", color: "var(--m3-on-surface)",
+                fontSize: "13px", fontWeight: 500, cursor: exportando ? "not-allowed" : "pointer",
+                opacity: exportando ? 0.6 : 1,
+              }}
+            >
+              {exportando ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Download size={14} />}
+              Exportar
+              <ChevronDown size={12} style={{ color: "var(--m3-on-surface-variant)" }}
+                onClick={(e) => { e.stopPropagation(); handleExportar("csv"); }}
+                title="Exportar como CSV"
+              />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -219,13 +445,23 @@ export function HistoryPage() {
             { label: "CONFIANÇA", sortable: false },
             { label: "DATA", sortable: true },
           ].map((col) => (
-            <div key={col.label} style={{
-              display: "flex", alignItems: "center", gap: "4px",
-              fontSize: "11px", fontWeight: 600, color: "var(--m3-on-surface-variant)",
-              letterSpacing: "0.05em", cursor: col.sortable ? "pointer" : "default",
-            }}>
+            <div
+              key={col.label}
+              onClick={col.sortable ? () => setOrdenacao((o) => o === "desc" ? "asc" : "desc") : undefined}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                fontSize: "11px", fontWeight: 600, color: "var(--m3-on-surface-variant)",
+                letterSpacing: "0.05em",
+                cursor: col.sortable ? "pointer" : "default",
+                userSelect: "none",
+              }}
+            >
               {col.label}
-              {col.sortable && <ArrowUpDown size={12} />}
+              {col.sortable && (
+                ordenacao !== undefined
+                  ? <SortIcon size={12} style={{ color: "var(--m3-primary)" }} />
+                  : <ArrowUpDown size={12} />
+              )}
             </div>
           ))}
           <div />
@@ -247,12 +483,15 @@ export function HistoryPage() {
           </div>
         ) : (
           items.map((item, i) => (
-            <div key={item.id} style={{
-              display: "grid", gridTemplateColumns: "1fr 160px 120px 110px 40px",
-              padding: "16px 20px",
-              borderBottom: i < items.length - 1 ? "1px solid var(--m3-outline)" : "none",
-              alignItems: "center", cursor: "pointer", transition: "background-color 0.1s",
-            }}
+            <div
+              key={item.id}
+              onClick={() => setSelectedId(item.id)}
+              style={{
+                display: "grid", gridTemplateColumns: "1fr 160px 120px 110px 40px",
+                padding: "16px 20px",
+                borderBottom: i < items.length - 1 ? "1px solid var(--m3-outline)" : "none",
+                alignItems: "center", cursor: "pointer", transition: "background-color 0.1s",
+              }}
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
             >
@@ -269,26 +508,24 @@ export function HistoryPage() {
                     fontSize: "14px", color: "var(--m3-on-surface)",
                     overflow: "hidden", textOverflow: "ellipsis",
                     whiteSpace: "nowrap", maxWidth: "380px",
+                    margin: 0,
                   }}>
                     {item.content}
                   </p>
-                  <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", marginTop: "2px" }}>
-                    Tipo: {item.tipo === "texto" ? "Texto" : item.tipo === "link" ? "Link" : "Imagem"}
+                  <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", marginTop: "2px", margin: "2px 0 0" }}>
+                    {item.tipo === "texto" ? "Texto" : item.tipo === "link" ? "Link" : "Imagem"}
                   </p>
                 </div>
               </div>
 
               <div><ResultBadge result={item.result} /></div>
+              <div><ConfidenceBar value={item.confidence} color={RESULT_CONFIG[item.result].color} /></div>
 
               <div>
-                <ConfidenceBar value={item.confidence} color={RESULT_CONFIG[item.result].color} />
-              </div>
-
-              <div>
-                <p style={{ fontSize: "13px", color: "var(--m3-on-surface)", lineHeight: 1.4 }}>
+                <p style={{ fontSize: "13px", color: "var(--m3-on-surface)", lineHeight: 1.4, margin: 0 }}>
                   {formatDate(item.timestamp)}
                 </p>
-                <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>
+                <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", margin: "2px 0 0" }}>
                   {formatTime(item.timestamp)}
                 </p>
               </div>
@@ -304,15 +541,22 @@ export function HistoryPage() {
       {/* Pagination */}
       {!isLoading && !error && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "16px", flexWrap: "wrap", gap: "12px" }}>
+          {/* Per-page selector */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)" }}>Exibir:</span>
-            <div style={{
-              display: "flex", alignItems: "center", gap: "4px", padding: "4px 10px",
-              borderRadius: "8px", border: "1px solid var(--m3-outline)",
-              backgroundColor: "var(--m3-surface-container)", color: "var(--m3-on-surface)", fontSize: "13px",
-            }}>
-              {ITEMS_PER_PAGE} por página
-            </div>
+            <select
+              value={porPagina}
+              onChange={(e) => setPorPagina(Number(e.target.value))}
+              style={{
+                padding: "4px 10px", borderRadius: "8px", border: "1px solid var(--m3-outline)",
+                backgroundColor: "var(--m3-surface-container)", color: "var(--m3-on-surface)",
+                fontSize: "13px", cursor: "pointer",
+              }}
+            >
+              {POR_PAGINA_OPTS.map((n) => (
+                <option key={n} value={n}>{n} por página</option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -362,6 +606,16 @@ export function HistoryPage() {
           </p>
         </div>
       )}
+
+      {/* Detail modal */}
+      {selectedId !== null && (
+        <VerificacaoDetalheModal
+          verificacaoId={selectedId}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

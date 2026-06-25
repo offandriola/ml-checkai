@@ -15,6 +15,7 @@ import { VerdictPage } from "./components/VerdictPage";
 import { LoginPage } from "./components/LoginPage";
 import { RegisterPage } from "./components/RegisterPage";
 import { ForgotPasswordPage } from "./components/ForgotPasswordPage";
+import { ResetPasswordPage } from "./components/ResetPasswordPage";
 import { GuestLimitModal } from "./components/GuestLimitModal";
 import { MeuPlanoPage } from "./components/MeuPlanoPage";
 import { postVerificar, mapVerificarToResult } from "./services/api";
@@ -46,7 +47,7 @@ interface Verification {
   confidence?: number;
 }
 
-type FullPage = "landing" | "sobre" | "planos" | "checkout" | "processing" | "verdict" | "login" | "register" | "forgot-password" | AppPage;
+type FullPage = "landing" | "sobre" | "planos" | "checkout" | "processing" | "verdict" | "login" | "register" | "forgot-password" | "reset-password" | AppPage;
 
 const VERIFICATION_STEPS = [
   { id: 1, label: "Recebendo as informações" },
@@ -69,7 +70,7 @@ const APP_PAGES: AppPage[] = ["home", "history", "results", "plan", "settings"];
 // Páginas acessíveis sem autenticação (tudo mais redireciona para landing ao sair)
 const PUBLIC_PAGES: FullPage[] = [
   "landing", "sobre", "planos", "checkout",
-  "login", "register", "forgot-password",
+  "login", "register", "forgot-password", "reset-password",
   "processing", "verdict",
 ];
 
@@ -115,6 +116,7 @@ export default function App() {
   const [verdictJustificativa, setVerdictJustificativa] = useState<string | null | undefined>(null);
   const [verdictNomeArquivo, setVerdictNomeArquivo] = useState<string | null>(null);
   const [activeVerificationId, setActiveVerificationId] = useState<string | null>(null);
+  const [resetPasswordToken, setResetPasswordToken] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   // ── Guest verification limit ──
@@ -124,6 +126,19 @@ export default function App() {
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
 
   const reqIdRef = useRef(0);
+
+  // Detecta URL de redefinição de senha (/redefinir-senha?token=...)
+  useEffect(() => {
+    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (path.includes("redefinir-senha") && token) {
+      setResetPasswordToken(token);
+      setCurrentPage("reset-password");
+    }
+  // Só executa uma vez na montagem
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-navigate when auth state resolves
   useEffect(() => {
@@ -207,8 +222,7 @@ export default function App() {
           );
         }
       }
-      const api = await postVerificar(value, tipoApi);
-      return mapVerificarToResult(api);
+      return mapVerificarToResult(await postVerificar(value, tipoApi));
     };
 
     const applyResult = (mapped: {
@@ -283,6 +297,7 @@ export default function App() {
       }
       return;
     }
+    setHomeInitialContent(null);
     setActiveVerificationId(null);
     setCurrentPage("home");
   };
@@ -310,6 +325,15 @@ export default function App() {
     if (currentPage === "forgot-password") {
       return (
         <ForgotPasswordPage
+          onGoToLogin={() => setCurrentPage("login")}
+        />
+      );
+    }
+
+    if (currentPage === "reset-password" && resetPasswordToken) {
+      return (
+        <ResetPasswordPage
+          token={resetPasswordToken}
           onGoToLogin={() => setCurrentPage("login")}
         />
       );
@@ -372,7 +396,6 @@ export default function App() {
           timestamp={verdictTimestamp}
           fontes={verdictFontes}
           onNewVerification={handleNewVerification}
-          isAuthenticated={isAuthenticated}
           nomeArquivo={verdictNomeArquivo ?? undefined}
           nliAgregado={verdictNliAgregado}
           nliScore={verdictNliScore}

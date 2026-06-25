@@ -136,7 +136,7 @@ export function ForgotPasswordPage({ onGoToLogin }: ForgotPasswordPageProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [enviado, setEnviado] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,7 +145,7 @@ export function ForgotPasswordPage({ onGoToLogin }: ForgotPasswordPageProps) {
     setError("");
     try {
       await apiForgotPassword(email);
-      setSuccess(true);
+      setEnviado(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao solicitar recuperação");
     } finally {
@@ -236,7 +236,7 @@ export function ForgotPasswordPage({ onGoToLogin }: ForgotPasswordPageProps) {
               </span>
             </div>
 
-            {!success ? (
+            {!enviado ? (
               <>
                 <h1 className="text-2xl font-medium text-center mb-2" style={{ color: "var(--m3-on-surface)" }}>
                   <span style={{ color: "var(--m3-primary)" }}>Esqueceu</span> sua senha?
@@ -324,30 +324,23 @@ export function ForgotPasswordPage({ onGoToLogin }: ForgotPasswordPageProps) {
               </>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", textAlign: "center" }}>
-                <div
-                  style={{
-                    width: "72px",
-                    height: "72px",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "var(--m3-primary-container)",
-                  }}
-                >
+                <div style={{ width: "72px", height: "72px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--m3-primary-container)" }}>
                   <CheckCircle2 size={32} style={{ color: "var(--m3-primary)" }} />
                 </div>
                 <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--m3-on-surface)", margin: 0 }}>
-                  E-mail enviado!
+                  Verifique seu e-mail
                 </h2>
                 <p style={{ fontSize: "14px", color: "var(--m3-on-surface-variant)", lineHeight: "1.6", margin: 0 }}>
-                  Se houver uma conta com o e-mail <strong style={{ color: "var(--m3-on-surface)" }}>{email}</strong>, você
-                  receberá as instruções de recuperação.
+                  Se houver uma conta associada a <strong style={{ color: "var(--m3-on-surface)" }}>{email}</strong>,
+                  você receberá um link para redefinir sua senha em breve.
+                </p>
+                <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", margin: 0 }}>
+                  O link expira em 1 hora. Verifique também a pasta de spam.
                 </p>
                 <button
                   type="button"
                   onClick={onGoToLogin}
-                  className="flex items-center gap-2 py-3 px-6 rounded-xl text-sm font-medium transition-all duration-150 hover:opacity-90"
+                  className="flex items-center gap-2 py-3 px-6 rounded-xl text-sm font-medium"
                   style={{ backgroundColor: "var(--m3-primary)", color: "#F2EEED", border: "none", cursor: "pointer" }}
                 >
                   <ArrowLeft size={16} />

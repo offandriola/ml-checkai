@@ -16,7 +16,6 @@ from models.schemas import (
     TrocarSenhaRequest,
     MensagemResponse,
     RecuperarSenhaRequest,
-    RecuperarSenhaResponse,
     RedefinirSenhaRequest,
 )
 from services.auth import (
@@ -204,27 +203,24 @@ async def excluir_minha_conta(
 
 @router.post(
     "/recuperar-senha",
-    response_model=RecuperarSenhaResponse,
+    response_model=MensagemResponse,
     summary="Solicitar recuperação de senha",
     description=(
-        "Gera um token de redefinição de senha. Por segurança, responde a "
-        "mesma mensagem mesmo que o e-mail não exista. "
-        "NOTA: para fins acadêmicos, o token é retornado na resposta; em "
-        "produção, ele seria enviado por e-mail."
+        "Envia um link de recuperação de senha para o e-mail informado. "
+        "Por segurança, a resposta é idêntica mesmo que o e-mail não exista."
     ),
 )
 async def recuperar_senha(
     dados: RecuperarSenhaRequest,
     db: Session = Depends(get_db),
-) -> RecuperarSenhaResponse:
-    """Solicita a recuperação de senha (token retornado para fins de TCC)."""
-    token = gerar_recuperacao_senha(db, dados.email)
-    return RecuperarSenhaResponse(
+) -> MensagemResponse:
+    """Envia e-mail de recuperação; nunca expõe o token na resposta."""
+    gerar_recuperacao_senha(db, dados.email)
+    return MensagemResponse(
         mensagem=(
-            "Se houver uma conta com este e-mail, um link de recuperação "
-            "foi gerado."
-        ),
-        token_recuperacao=token,  # em produção seria None e iria por e-mail
+            "Se houver uma conta com este e-mail, você receberá as "
+            "instruções de recuperação em breve."
+        )
     )
 
 

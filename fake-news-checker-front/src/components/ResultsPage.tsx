@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
-import { TrendingUp, ChevronDown, ArrowRight, Calendar, Loader2 } from "lucide-react";
+import { ChevronDown, ArrowRight, Calendar, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import {
   apiObterResumo,
   apiListarVerificacoes,
+  apiObterFontesTop,
+  apiObterSerieTemporal,
   mapResultado,
   type ResumoApiResponse,
-  type VerificacaoApiItem,
+  type FonteTopItem,
+  type Periodo,
+  type PontoSerieTemporal,
 } from "../services/verificacoes";
 import type { AppPage } from "./Sidebar";
 
@@ -18,47 +22,33 @@ const RESULT_CFG: Record<ResultType, { label: string; color: string }> = {
   nao_verificavel: { label: "Inconclusivo", color: "#f59e0b" },
 };
 
-const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const PERIODO_OPTS: { value: Periodo; label: string }[] = [
+  { value: "7d",  label: "Últimos 7 dias" },
+  { value: "30d", label: "Últimos 30 dias" },
+  { value: "90d", label: "Últimos 90 dias" },
+  { value: "all", label: "Todo período" },
+];
 
-interface WeekBar {
-  day: string;
-  total: number;
-  verdadeiras: number;
-  falsas: number;
-  inconclusivas: number;
+const PERIODO_CHART_LABEL: Record<Periodo, string> = {
+  "7d":  "Verificações — Últimos 7 dias",
+  "30d": "Verificações — Últimos 30 dias",
+  "90d": "Verificações — Últimas 13 semanas",
+  "all": "Verificações — Todo período",
+};
+
+function periodoParaDatas(periodo: Periodo): { data_inicio?: string; data_fim?: string } {
+  if (periodo === "all") return {};
+  const hoje = new Date();
+  const fim = hoje.toISOString().split("T")[0];
+  const dias = periodo === "7d" ? 7 : periodo === "30d" ? 30 : 90;
+  const inicio = new Date(hoje);
+  inicio.setDate(hoje.getDate() - dias);
+  return { data_inicio: inicio.toISOString().split("T")[0], data_fim: fim };
 }
 
-function buildWeeklyBars(verifications: VerificacaoApiItem[]): WeekBar[] {
-  const now = new Date();
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() - (6 - i));
-    const yyyy = d.getFullYear();
-    const mm   = String(d.getMonth() + 1).padStart(2, "0");
-    const dd   = String(d.getDate()).padStart(2, "0");
-    const dayStr = `${yyyy}-${mm}-${dd}`;
-    const items = verifications.filter(v => v.criado_em.startsWith(dayStr));
-    return {
-      day: DAY_LABELS[d.getDay()],
-      total: items.length,
-      verdadeiras:  items.filter(v => v.resultado === "REAL").length,
-      falsas:       items.filter(v => v.resultado === "FALSO").length,
-      inconclusivas: items.filter(v => v.resultado === "INCONCLUSIVO").length,
-    };
-  });
-}
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function StatCard({
-  label, value, sub, subColor, delta,
-}: {
-  label: string;
-  value: number;
-  sub?: string;
-  subColor?: string;
-  delta?: string;
-}) {
+function StatCard({ label, value, sub, subColor }: { label: string; value: number; sub?: string; subColor?: string }) {
   return (
     <div style={{ flex: "1 1 160px", padding: "20px", borderRadius: "14px", backgroundColor: "var(--m3-surface-container)", border: "1px solid var(--m3-outline)", display: "flex", flexDirection: "column", gap: "6px" }}>
       <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)", fontWeight: 500 }}>{label}</p>
@@ -66,24 +56,11 @@ function StatCard({
         <span style={{ fontSize: "32px", fontWeight: 700, color: "var(--m3-on-surface)", lineHeight: 1 }}>{value}</span>
         {sub && <span style={{ fontSize: "14px", fontWeight: 600, color: subColor ?? "var(--m3-on-surface-variant)" }}>{sub}</span>}
       </div>
-      {delta && (
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <TrendingUp size={12} style={{ color: "#22c55e" }} />
-          <span style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)" }}>{delta}</span>
-        </div>
-      )}
     </div>
   );
 }
 
-function DonutChart({
-  total, verdadeiras, falsas, inconclusivas,
-}: {
-  total: number;
-  verdadeiras: number;
-  falsas: number;
-  inconclusivas: number;
-}) {
+function DonutChart({ total, verdadeiras, falsas, inconclusivas }: { total: number; verdadeiras: number; falsas: number; inconclusivas: number }) {
   const cx = 80, cy = 80, r = 60, stroke = 22;
   const circumference = 2 * Math.PI * r;
 
@@ -109,38 +86,38 @@ function DonutChart({
     <svg width="160" height="160" viewBox="0 0 160 160">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
       {arcs.map((arc, i) => (
-        <circle
-          key={i}
-          cx={cx} cy={cy} r={r}
-          fill="none"
-          stroke={arc.color}
-          strokeWidth={stroke}
-          strokeDasharray={`${arc.dash} ${arc.gap}`}
-          strokeLinecap="butt"
-          transform={`rotate(${arc.rotation}, ${cx}, ${cy})`}
-        />
+        <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={arc.color} strokeWidth={stroke}
+          strokeDasharray={`${arc.dash} ${arc.gap}`} strokeLinecap="butt"
+          transform={`rotate(${arc.rotation}, ${cx}, ${cy})`} />
       ))}
-      <text x={cx} y={cy - 8}  textAnchor="middle" fill="var(--m3-on-surface)"         fontSize="22" fontWeight="700">{total}</text>
-      <text x={cx} y={cy + 12} textAnchor="middle" fill="var(--m3-on-surface-variant)"  fontSize="10">verificações</text>
+      <text x={cx} y={cy - 8}  textAnchor="middle" fill="var(--m3-on-surface)"        fontSize="22" fontWeight="700">{total}</text>
+      <text x={cx} y={cy + 12} textAnchor="middle" fill="var(--m3-on-surface-variant)" fontSize="10">verificações</text>
     </svg>
   );
 }
 
-function WeeklyBarChart({ bars }: { bars: WeekBar[] }) {
-  const maxTotal = Math.max(...bars.map(b => b.total), 1);
-
+function WeeklyBarChart({ bars }: { bars: PontoSerieTemporal[] }) {
+  if (bars.length === 0) {
+    return (
+      <div style={{ height: "140px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontSize: "12px", color: "var(--m3-on-surface-variant)" }}>Nenhum dado no período.</p>
+      </div>
+    );
+  }
+  const totals = bars.map(b => b.verdadeiras + b.falsas + b.inconclusivas);
+  const maxTotal = Math.max(...totals, 1);
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", height: "140px", paddingBottom: "24px", position: "relative" }}>
-      {bars.map((bar) => {
-        const barH = Math.round((bar.total / maxTotal) * 116);
-        const vH   = bar.total > 0 ? Math.round(barH * (bar.verdadeiras  / bar.total)) : 0;
-        const fH   = bar.total > 0 ? Math.round(barH * (bar.falsas        / bar.total)) : 0;
-        const iH   = bar.total > 0 ? Math.round(barH * (bar.inconclusivas / bar.total)) : 0;
-
+    <div style={{ display: "flex", alignItems: "flex-end", gap: "4px", height: "140px", paddingBottom: "24px", position: "relative", overflowX: "auto" }}>
+      {bars.map((bar, idx) => {
+        const total = bar.verdadeiras + bar.falsas + bar.inconclusivas;
+        const barH = Math.round((total / maxTotal) * 116);
+        const vH   = total > 0 ? Math.round(barH * (bar.verdadeiras  / total)) : 0;
+        const fH   = total > 0 ? Math.round(barH * (bar.falsas        / total)) : 0;
+        const iH   = total > 0 ? Math.round(barH * (bar.inconclusivas / total)) : 0;
         return (
-          <div key={bar.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+          <div key={idx} style={{ flex: "1 0 20px", minWidth: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
             <div style={{ width: "100%", display: "flex", flexDirection: "column-reverse", borderRadius: "4px", overflow: "hidden", gap: "1px" }}>
-              {bar.total === 0 ? (
+              {total === 0 ? (
                 <div style={{ height: "2px", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: "4px" }} />
               ) : (
                 <>
@@ -150,9 +127,7 @@ function WeeklyBarChart({ bars }: { bars: WeekBar[] }) {
                 </>
               )}
             </div>
-            <span style={{ fontSize: "11px", color: "var(--m3-on-surface-variant)", position: "absolute", bottom: "0" }}>
-              {bar.day}
-            </span>
+            <span style={{ fontSize: "10px", color: "var(--m3-on-surface-variant)", position: "absolute", bottom: "0", whiteSpace: "nowrap" }}>{bar.label}</span>
           </div>
         );
       })}
@@ -170,35 +145,89 @@ function ResultBadgeMini({ result }: { result: ResultType }) {
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+function PeriodDropdown({ value, onChange }: { value: Periodo; onChange: (v: Periodo) => void }) {
+  const [open, setOpen] = useState(false);
+  const label = PERIODO_OPTS.find((o) => o.value === value)?.label ?? "Período";
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px",
+          borderRadius: "10px", border: "1px solid var(--m3-outline)",
+          backgroundColor: "var(--m3-surface-container)", color: "var(--m3-on-surface)",
+          fontSize: "13px", fontWeight: 500, cursor: "pointer",
+        }}
+      >
+        <Calendar size={14} />
+        {label}
+        <ChevronDown size={13} style={{ color: "var(--m3-on-surface-variant)" }} />
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 100,
+          background: "var(--m3-surface-container-high, #1e293b)",
+          border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.35)", overflow: "hidden", minWidth: 170,
+        }}>
+          {PERIODO_OPTS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              style={{
+                display: "block", width: "100%", textAlign: "left",
+                padding: "10px 16px", border: "none", cursor: "pointer",
+                background: opt.value === value ? "rgba(255,255,255,0.06)" : "none",
+                color: opt.value === value ? "var(--m3-primary)" : "var(--m3-on-surface)",
+                fontSize: 13, fontWeight: opt.value === value ? 600 : 400,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function ResultsPage({ onNavigate }: { onNavigate?: (page: AppPage) => void }) {
   const { token } = useAuth();
+  const [periodo, setPeriodo] = useState<Periodo>("7d");
   const [resumo,      setResumo]      = useState<ResumoApiResponse | null>(null);
   const [recentItems, setRecentItems] = useState<{ content: string; result: ResultType; confidence: number }[]>([]);
-  const [weeklyBars,  setWeeklyBars]  = useState<WeekBar[]>(() => buildWeeklyBars([]));
+  const [serieTemp,   setSerieTemp]   = useState<PontoSerieTemporal[]>([]);
+  const [fontesTop,   setFontesTop]   = useState<FonteTopItem[]>([]);
   const [isLoading,   setIsLoading]   = useState(true);
 
   useEffect(() => {
     if (!token) { setIsLoading(false); return; }
+    setIsLoading(true);
+
+    const datas = periodoParaDatas(periodo);
 
     Promise.all([
-      apiObterResumo(token).catch(() => null),
-      apiListarVerificacoes(token, { por_pagina: 100 }).catch(() => null),
-    ]).then(([resumoData, listData]) => {
+      apiObterResumo(token, periodo).catch(() => null),
+      apiListarVerificacoes(token, { por_pagina: 5, ordenacao: "desc", ...datas }).catch(() => null),
+      apiObterFontesTop(token, periodo, 5).catch(() => null),
+      apiObterSerieTemporal(token, periodo).catch(() => null),
+    ]).then(([resumoData, listData, fontesData, serieData]) => {
       if (resumoData) setResumo(resumoData);
       if (listData) {
         setRecentItems(
-          listData.itens.slice(0, 5).map(v => ({
+          listData.itens.map(v => ({
             content:    v.texto_verificado,
             result:     mapResultado(v.resultado),
             confidence: Math.round(v.confianca * 100),
           }))
         );
-        setWeeklyBars(buildWeeklyBars(listData.itens));
       }
+      if (fontesData) setFontesTop(fontesData);
+      if (serieData) setSerieTemp(serieData);
     }).finally(() => setIsLoading(false));
-  }, [token]);
+  }, [token, periodo]);
 
   const stats = resumo
     ? {
@@ -232,13 +261,7 @@ export function ResultsPage({ onNavigate }: { onNavigate?: (page: AppPage) => vo
             Acompanhe o desempenho das suas verificações e descubra insights importantes.
           </p>
         </div>
-        <button
-          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "10px", border: "1px solid var(--m3-outline)", backgroundColor: "var(--m3-surface-container)", color: "var(--m3-on-surface)", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}
-        >
-          <Calendar size={14} />
-          Últimos 7 dias
-          <ChevronDown size={13} style={{ color: "var(--m3-on-surface-variant)" }} />
-        </button>
+        <PeriodDropdown value={periodo} onChange={setPeriodo} />
       </div>
 
       {/* Stat cards */}
@@ -257,12 +280,7 @@ export function ResultsPage({ onNavigate }: { onNavigate?: (page: AppPage) => vo
             Distribuição dos resultados
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap" }}>
-            <DonutChart
-              total={stats.total}
-              verdadeiras={stats.verdadeiras}
-              falsas={stats.falsas}
-              inconclusivas={stats.inconclusivas}
-            />
+            <DonutChart total={stats.total} verdadeiras={stats.verdadeiras} falsas={stats.falsas} inconclusivas={stats.inconclusivas} />
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {[
                 { label: "Verdadeiras",   value: stats.verdadeiras,   pct: stats.verdadeirasPercent,   color: "#22c55e" },
@@ -293,13 +311,10 @@ export function ResultsPage({ onNavigate }: { onNavigate?: (page: AppPage) => vo
         <div style={{ flex: "2 1 340px", padding: "20px", borderRadius: "14px", backgroundColor: "var(--m3-surface-container)", border: "1px solid var(--m3-outline)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
             <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--m3-on-surface)" }}>
-              Verificações nos últimos 7 dias
+              {PERIODO_CHART_LABEL[periodo]}
             </p>
-            <button style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 10px", borderRadius: "8px", border: "1px solid var(--m3-outline)", backgroundColor: "transparent", color: "var(--m3-on-surface)", fontSize: "12px", cursor: "pointer" }}>
-              Últimos 7 dias <ChevronDown size={12} />
-            </button>
           </div>
-          <WeeklyBarChart bars={weeklyBars} />
+          <WeeklyBarChart bars={serieTemp} />
           <div style={{ display: "flex", gap: "16px", marginTop: "8px", flexWrap: "wrap" }}>
             {[
               { label: "Verdadeiras",   color: "#22c55e" },
@@ -334,12 +349,9 @@ export function ResultsPage({ onNavigate }: { onNavigate?: (page: AppPage) => vo
             </div>
           ) : (
             recentItems.map((item, i) => (
-              <div
-                key={i}
-                style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 20px", borderBottom: i < recentItems.length - 1 ? "1px solid var(--m3-outline)" : "none" }}
-              >
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 20px", borderBottom: i < recentItems.length - 1 ? "1px solid var(--m3-outline)" : "none" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: "13px", color: "var(--m3-on-surface)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ fontSize: "13px", color: "var(--m3-on-surface)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
                     {item.content}
                   </p>
                 </div>
@@ -352,18 +364,54 @@ export function ResultsPage({ onNavigate }: { onNavigate?: (page: AppPage) => vo
           )}
         </div>
 
-        {/* Sources */}
+        {/* Top sources — real data */}
         <div style={{ flex: "1 1 280px", borderRadius: "14px", backgroundColor: "var(--m3-surface-container)", border: "1px solid var(--m3-outline)", overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--m3-outline)" }}>
             <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--m3-on-surface)" }}>Fontes mais consultadas</p>
           </div>
-          <div style={{ padding: "32px 20px", textAlign: "center" }}>
-            <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)" }}>
-              As fontes aparecerão aqui conforme você fizer verificações com busca web ativa.
-            </p>
-          </div>
+
+          {fontesTop.length === 0 ? (
+            <div style={{ padding: "32px 20px", textAlign: "center" }}>
+              <p style={{ fontSize: "13px", color: "var(--m3-on-surface-variant)", lineHeight: 1.6 }}>
+                As fontes aparecerão aqui conforme você fizer verificações com busca web ativa.
+              </p>
+            </div>
+          ) : (
+            <div style={{ padding: "8px 0" }}>
+              {fontesTop.map((fonte, i) => (
+                <div key={fonte.dominio} style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 20px",
+                  borderBottom: i < fontesTop.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                }}>
+                  <span style={{ fontSize: 12, color: "var(--m3-on-surface-variant)", minWidth: 18, fontWeight: 600 }}>
+                    {i + 1}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, color: "var(--m3-on-surface)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {fonte.dominio}
+                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                      {/* Mini bar */}
+                      <div style={{ flex: 1, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                        <div style={{ width: `${fonte.percentual}%`, height: "100%", background: "#60a5fa", borderRadius: 2 }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: "var(--m3-on-surface-variant)", minWidth: 28, textAlign: "right" }}>
+                        {fonte.percentual}%
+                      </span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, color: "var(--m3-on-surface-variant)", minWidth: 28, textAlign: "right" }}>
+                    {fonte.total}×
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

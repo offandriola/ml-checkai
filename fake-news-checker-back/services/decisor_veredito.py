@@ -166,16 +166,13 @@ def decidir_veredito_final(
             "confianca": confianca_atual,
             "decisao_origem": "fluxo_atual",
             "justificativa_decisao": (
-                "NLI sem fontes avaliadas; mantém o resultado do fluxo atual."
+                "Não foi possível verificar a alegação com fontes externas suficientes. "
+                "O resultado baseia-se na análise de padrões do texto."
             ),
         }
 
     # ------------------------------------------------------------------
     # Regra especial — fact-checking de alta confiabilidade em conflito
-    # ------------------------------------------------------------------
-    # Uma única agência de fact-checking qualificada (score >= 0.60) é
-    # suficiente para tornar o resultado INCONCLUSIVO quando contradiz o ML,
-    # independentemente do label agregado das demais fontes.
     # ------------------------------------------------------------------
     if resultado_atual == "REAL" and _tem_factcheck_forte(fontes, "REFUTES"):
         logger.info(
@@ -186,8 +183,8 @@ def decidir_veredito_final(
             "confianca": _CONFIANCA_CONFLITO,
             "decisao_origem": "nli_decidiu_inconclusivo",
             "justificativa_decisao": (
-                "Fonte de fact-checking de alta confiabilidade refuta a alegação. "
-                "Resultado conservador: INCONCLUSIVO."
+                "Uma agência especializada em verificação de fatos encontrou evidências "
+                "que contradizem a alegação. Por cautela, o resultado foi marcado como inconclusivo."
             ),
         }
 
@@ -200,8 +197,9 @@ def decidir_veredito_final(
             "confianca": _CONFIANCA_CONFLITO,
             "decisao_origem": "nli_decidiu_inconclusivo",
             "justificativa_decisao": (
-                "Fonte de fact-checking de alta confiabilidade confirma a alegação "
-                "contradizendo o ML. Resultado conservador: INCONCLUSIVO."
+                "Uma agência especializada em verificação de fatos encontrou evidências "
+                "favoráveis à alegação, enquanto a análise de texto apontou o oposto. "
+                "Por cautela, o resultado foi marcado como inconclusivo."
             ),
         }
 
@@ -218,7 +216,8 @@ def decidir_veredito_final(
             "confianca": confianca_atual,
             "decisao_origem": "fluxo_atual",
             "justificativa_decisao": (
-                "NLI com resultado neutro; mantém o resultado do fluxo atual."
+                "As fontes consultadas não apresentaram evidências claras a favor "
+                "ou contra a alegação. O resultado baseia-se na análise do texto."
             ),
         }
 
@@ -229,7 +228,6 @@ def decidir_veredito_final(
         forte = _nli_e_forte(nli_score_agregado, nli_votos, fontes, "SUPPORTS")
 
         if resultado_atual == "REAL" and forte:
-            # Concordância: boost de confiança
             nova = round(min(_MAX_CONFIANCA, confianca_atual + _BOOST_CONCORDANCIA), 4)
             logger.info("Decisor: ML=REAL + NLI=SUPPORTS → REAL (%.2f→%.2f)", confianca_atual, nova)
             return {
@@ -237,27 +235,24 @@ def decidir_veredito_final(
                 "confianca": nova,
                 "decisao_origem": "nli_reforcou",
                 "justificativa_decisao": (
-                    f"ML e NLI concordam (REAL/SUPPORTS, score={nli_score_agregado:.2f}); "
-                    f"confiança de {confianca_atual:.2f} → {nova:.2f}."
+                    "Fontes confiáveis corroboram a alegação e a análise do texto "
+                    "aponta na mesma direção. A confiança foi reforçada pelas evidências encontradas."
                 ),
             }
 
         if resultado_atual == "FALSO" and forte:
-            # Conflito: INCONCLUSIVO conservador
             logger.info("Decisor: ML=FALSO + NLI=SUPPORTS → INCONCLUSIVO (conflito)")
             return {
                 "resultado": "INCONCLUSIVO",
                 "confianca": _CONFIANCA_CONFLITO,
                 "decisao_origem": "nli_decidiu_inconclusivo",
                 "justificativa_decisao": (
-                    f"Conflito: ML=FALSO mas fontes NLI indicam SUPPORTS "
-                    f"(score={nli_score_agregado:.2f}). "
-                    "Resultado conservador: INCONCLUSIVO."
+                    "As fontes consultadas apoiam a alegação, mas a análise do texto "
+                    "indica o contrário. Não foi possível chegar a uma conclusão definitiva."
                 ),
             }
 
         if resultado_atual == "INCONCLUSIVO" and forte:
-            # NLI resolve a ambiguidade
             conf_nli = round(min(_MAX_CONFIANCA, nli_score_agregado), 4)
             logger.info("Decisor: INCONCLUSIVO + NLI=SUPPORTS → REAL (score=%.2f)", nli_score_agregado)
             return {
@@ -265,8 +260,8 @@ def decidir_veredito_final(
                 "confianca": conf_nli,
                 "decisao_origem": "nli_reforcou",
                 "justificativa_decisao": (
-                    f"Resultado era inconclusivo; NLI forte SUPPORTS "
-                    f"(score={nli_score_agregado:.2f}) resolve para REAL."
+                    "A análise inicial era inconclusiva, mas as fontes consultadas "
+                    "confirmam a alegação com evidências suficientes."
                 ),
             }
 
@@ -277,7 +272,6 @@ def decidir_veredito_final(
         forte = _nli_e_forte(nli_score_agregado, nli_votos, fontes, "REFUTES")
 
         if resultado_atual == "FALSO" and forte:
-            # Concordância: boost de confiança
             nova = round(min(_MAX_CONFIANCA, confianca_atual + _BOOST_CONCORDANCIA), 4)
             logger.info("Decisor: ML=FALSO + NLI=REFUTES → FALSO (%.2f→%.2f)", confianca_atual, nova)
             return {
@@ -285,27 +279,25 @@ def decidir_veredito_final(
                 "confianca": nova,
                 "decisao_origem": "nli_reforcou",
                 "justificativa_decisao": (
-                    f"ML e NLI concordam (FALSO/REFUTES, score={nli_score_agregado:.2f}); "
-                    f"confiança de {confianca_atual:.2f} → {nova:.2f}."
+                    "A análise do texto e as fontes consultadas concordam que "
+                    "a alegação não corresponde aos fatos. A confiança foi reforçada "
+                    "pelas evidências encontradas."
                 ),
             }
 
         if resultado_atual == "REAL" and forte:
-            # Conflito: INCONCLUSIVO conservador
             logger.info("Decisor: ML=REAL + NLI=REFUTES → INCONCLUSIVO (conflito)")
             return {
                 "resultado": "INCONCLUSIVO",
                 "confianca": _CONFIANCA_CONFLITO,
                 "decisao_origem": "nli_decidiu_inconclusivo",
                 "justificativa_decisao": (
-                    f"Conflito: ML=REAL mas fontes NLI indicam REFUTES "
-                    f"(score={nli_score_agregado:.2f}). "
-                    "Resultado conservador: INCONCLUSIVO."
+                    "As fontes consultadas contradizem a alegação, mas a análise "
+                    "do texto discordou. Não foi possível chegar a uma conclusão definitiva."
                 ),
             }
 
         if resultado_atual == "INCONCLUSIVO" and forte:
-            # NLI resolve a ambiguidade
             conf_nli = round(min(_MAX_CONFIANCA, nli_score_agregado), 4)
             logger.info("Decisor: INCONCLUSIVO + NLI=REFUTES → FALSO (score=%.2f)", nli_score_agregado)
             return {
@@ -313,8 +305,8 @@ def decidir_veredito_final(
                 "confianca": conf_nli,
                 "decisao_origem": "nli_reforcou",
                 "justificativa_decisao": (
-                    f"Resultado era inconclusivo; NLI forte REFUTES "
-                    f"(score={nli_score_agregado:.2f}) resolve para FALSO."
+                    "A análise inicial era inconclusiva, mas as fontes consultadas "
+                    "refutam a alegação com evidências suficientes."
                 ),
             }
 
@@ -330,7 +322,8 @@ def decidir_veredito_final(
         "confianca": confianca_atual,
         "decisao_origem": "fluxo_atual",
         "justificativa_decisao": (
-            f"NLI={nli_resultado_agregado} (score={nli_score_agregado:.2f}) "
-            "presente mas sem sinal forte suficiente para alterar o resultado."
+            "As fontes encontradas não apresentaram evidências conclusivas "
+            "suficientes para confirmar ou refutar a alegação. "
+            "O resultado baseia-se principalmente na análise do texto."
         ),
     }

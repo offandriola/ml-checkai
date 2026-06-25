@@ -14,6 +14,11 @@ class User(Base):
     senha_hash = Column(String(255), nullable=False)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
+    # Token de recuperação de senha: armazenamos apenas o hash SHA-256 do
+    # token aleatório enviado ao usuário (nunca o token em si).
+    reset_token_hash = Column(String(128), nullable=True)
+    reset_token_expira = Column(DateTime, nullable=True)
+
     # Um usuário possui várias verificações
     verificacoes = relationship(
         "Verificacao",

@@ -13,7 +13,6 @@ export interface UserResponse {
 
 export interface ForgotPasswordResponse {
   mensagem: string;
-  token_recuperacao?: string | null;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -105,6 +104,18 @@ export async function apiDeleteAccount(token: string): Promise<void> {
   const res = await fetch(`${BASE}/me`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
+  });
+  await handleResponse<{ mensagem: string }>(res);
+}
+
+export async function apiRedefinirSenha(
+  token: string,
+  nova_senha: string
+): Promise<void> {
+  const res = await fetch(`${BASE}/redefinir-senha`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, nova_senha }),
   });
   await handleResponse<{ mensagem: string }>(res);
 }

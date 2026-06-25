@@ -28,6 +28,12 @@ class Verificacao(Base):
     confianca = Column(Float, default=0.0)
     modelo_ativo = Column(String(5), default="nao")  # registra se foi modelo real ou mock
     fontes_json = Column(Text, nullable=True)  # JSON serializado de list[dict] com fontes web
+    # Campos NLI e decisor — persistidos para exibição no histórico
+    nli_resultado_agregado = Column(String(20), nullable=True)
+    nli_score_agregado = Column(Float, nullable=True)
+    nli_votos_json = Column(Text, nullable=True)  # JSON: {"SUPPORTS":0,"REFUTES":0,"NEUTRAL":0}
+    decisao_origem = Column(String(100), nullable=True)
+    justificativa_decisao = Column(Text, nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     # Relação inversa: acessar o usuário dono da verificação

@@ -9,6 +9,9 @@
 #   - O mesmo texto gera hashes diferentes (proteção contra rainbow tables).
 # ==============================================================================
 
+import hashlib
+import secrets
+
 import bcrypt
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
@@ -75,44 +78,16 @@ def decodificar_token(token: str) -> dict | None:
 # ==============================================================================
 # Token de Recuperação de Senha
 # ==============================================================================
-# Token JWT de propósito específico (tipo="reset"), com validade curta.
-# Distinto do token de acesso para que um não seja usado no lugar do outro.
+# Fluxo seguro: token aleatório urlsafe de 32 bytes enviado ao usuário por
+# e-mail. O banco armazena apenas o hash SHA-256 do token (nunca o valor em si).
 # ==============================================================================
 
-# Validade do token de recuperação, em minutos (curta por segurança).
-RESET_EXPIRACAO_MINUTOS = 15
+
+def gerar_token_recuperacao() -> str:
+    """Retorna um token aleatório de 32 bytes em base64url (43 caracteres)."""
+    return secrets.token_urlsafe(32)
 
 
-def criar_token_recuperacao(usuario_id: int) -> str:
-    """Gera um token JWT de recuperação de senha, válido por poucos minutos."""
-    expira_em = datetime.now(timezone.utc) + timedelta(
-        minutes=RESET_EXPIRACAO_MINUTOS
-    )
-    payload = {
-        "sub": str(usuario_id),
-        "tipo": "reset",  # marca o propósito do token
-        "exp": expira_em,
-    }
-    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-
-def decodificar_token_recuperacao(token: str) -> int | None:
-    """
-    Valida um token de recuperação e retorna o id do usuário.
-
-    Retorna None se o token for inválido, expirado, ou se não for
-    do tipo 'reset' (ex.: alguém tentou usar um token de login aqui).
-    """
-    try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-    except JWTError:
-        return None
-
-    if payload.get("tipo") != "reset":
-        return None
-
-    usuario_id = payload.get("sub")
-    if usuario_id is None:
-        return None
-
-    return int(usuario_id)
+def hash_token_recuperacao(token: str) -> str:
+    """Retorna o hash SHA-256 (hex) de um token de recuperação."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()

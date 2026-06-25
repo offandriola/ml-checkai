@@ -6,13 +6,18 @@
 # separada da lógica de acesso ao banco.
 # ==============================================================================
 
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy.orm import Session
+
+from config import RESET_TOKEN_EXPIRACAO_MINUTOS
 from db_models.user import User
-from utils.security import gerar_hash_senha
-from utils.security import verificar_senha
+from services.email_service import enviar_email_recuperacao
 from utils.security import (
-    criar_token_recuperacao,
-    decodificar_token_recuperacao,
+    gerar_hash_senha,
+    gerar_token_recuperacao,
+    hash_token_recuperacao,
+    verificar_senha,
 )
 
 
@@ -104,34 +109,57 @@ def excluir_conta(db: Session, usuario: User) -> None:
     db.commit()
 
 
-def gerar_recuperacao_senha(db: Session, email: str) -> str | None:
+def gerar_recuperacao_senha(db: Session, email: str) -> None:
     """
-    Gera um token de recuperação para o e-mail informado.
+    Gera um token de recuperação e envia o link por e-mail.
 
-    Retorna o token se o usuário existir, ou None caso contrário.
-    A ROTA deve responder a mesma mensagem nos dois casos, para não
-    revelar se o e-mail está cadastrado (anti user enumeration).
+    Não revela se o e-mail está ou não cadastrado (anti-enumeração).
+    O token é gerado com `secrets`, o hash SHA-256 é salvo no banco;
+    o valor em texto puro é enviado APENAS no link do e-mail.
     """
     usuario = buscar_usuario_por_email(db, email)
     if not usuario:
-        return None
-    return criar_token_recuperacao(usuario.id)
+        # Responde normalmente (sem revelar ausência do e-mail)
+        return
+
+    token = gerar_token_recuperacao()
+    usuario.reset_token_hash = hash_token_recuperacao(token)
+    usuario.reset_token_expira = datetime.now(timezone.utc) + timedelta(
+        minutes=RESET_TOKEN_EXPIRACAO_MINUTOS
+    )
+    db.commit()
+
+    # Email enviado de forma síncrona; falha é logada mas não exposta ao usuário
+    enviar_email_recuperacao(email, token)
 
 
 def redefinir_senha(db: Session, token: str, nova_senha: str) -> None:
     """
     Redefine a senha a partir de um token de recuperação válido.
 
-    Levanta ValueError se o token for inválido/expirado ou se o usuário
-    não existir mais.
+    Levanta ValueError se o token for inválido, expirado ou já utilizado.
+    Após o uso, o token é removido (uso único).
     """
-    usuario_id = decodificar_token_recuperacao(token)
-    if usuario_id is None:
-        raise ValueError("Token de recuperação inválido ou expirado.")
+    token_hash = hash_token_recuperacao(token)
+    usuario = (
+        db.query(User)
+        .filter(User.reset_token_hash == token_hash)
+        .first()
+    )
 
-    usuario = db.query(User).filter(User.id == usuario_id).first()
     if usuario is None:
-        raise ValueError("Usuário não encontrado.")
+        raise ValueError("Token de recuperação inválido ou já utilizado.")
+
+    expira = usuario.reset_token_expira
+    if expira is None:
+        raise ValueError("Token de recuperação inválido ou já utilizado.")
+
+    expira_utc = expira.replace(tzinfo=timezone.utc) if expira.tzinfo is None else expira
+    if datetime.now(timezone.utc) > expira_utc:
+        raise ValueError("Token de recuperação expirado. Solicite um novo link.")
 
     usuario.senha_hash = gerar_hash_senha(nova_senha)
+    # Invalida o token imediatamente (uso único)
+    usuario.reset_token_hash = None
+    usuario.reset_token_expira = None
     db.commit()

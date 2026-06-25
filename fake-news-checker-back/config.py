@@ -132,11 +132,30 @@ PIPELINES_RAW: dict[str, Path] = {
 
 
 # ------------------------------------------------------------------------------
-# Diretório do Modelo de ML
+# Ambiente
 # ------------------------------------------------------------------------------
-# O modelo treinado (.joblib) fica na pasta modelos/ na raiz do projeto.
-# O serviço de classificação carrega automaticamente no startup.
-# Modelo atual: baseline v2 balanced (acurácia 90.2%, ROC-AUC 97.1%)
+
+ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+
+
+# ------------------------------------------------------------------------------
+# Configuração de E-mail (SMTP)
+# ------------------------------------------------------------------------------
+
+SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER: str = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+EMAIL_FROM: str = os.getenv("EMAIL_FROM", "noreply@checkai.com.br")
+FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# Validade do token de recuperação de senha (em minutos)
+RESET_TOKEN_EXPIRACAO_MINUTOS: int = int(os.getenv("RESET_TOKEN_EXPIRACAO_MINUTOS", "60"))
+
+
+# ------------------------------------------------------------------------------
+# Diretório do Modelo de ML
 # ------------------------------------------------------------------------------
 
 _NOME_MODELO = "baseline_tfidf_svm_v4_balanced_2026-05-30_23-44-02.joblib"

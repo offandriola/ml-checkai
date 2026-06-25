@@ -17,6 +17,24 @@ from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 
 
+def _parse_json_list(raw) -> list:
+    if not raw:
+        return []
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
+def _parse_json_dict(raw) -> dict | None:
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
 # ==============================================================================
 # Health Check
 # ==============================================================================
@@ -441,27 +459,21 @@ class VerificacaoResponse(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def deserializar_fontes(cls, values):
-        """Converte fontes_json (Text do ORM) para list[FonteInfo]."""
+    def deserializar_campos_json(cls, values):
+        """Converte fontes_json e nli_votos_json (Text do ORM) para tipos Python."""
         if hasattr(values, "__dict__"):
             # Lendo de objeto ORM SQLAlchemy
             fontes_json = getattr(values, "fontes_json", None)
-            if fontes_json:
-                try:
-                    values.__dict__["fontes"] = json.loads(fontes_json)
-                except (json.JSONDecodeError, TypeError):
-                    values.__dict__["fontes"] = []
-            else:
-                values.__dict__["fontes"] = []
-        elif isinstance(values, dict) and "fontes_json" in values and "fontes" not in values:
-            fontes_json = values.get("fontes_json")
-            if fontes_json:
-                try:
-                    values["fontes"] = json.loads(fontes_json)
-                except (json.JSONDecodeError, TypeError):
-                    values["fontes"] = []
-            else:
-                values["fontes"] = []
+            values.__dict__["fontes"] = _parse_json_list(fontes_json)
+
+            nli_votos_json = getattr(values, "nli_votos_json", None)
+            if nli_votos_json and "nli_votos" not in values.__dict__:
+                values.__dict__["nli_votos"] = _parse_json_dict(nli_votos_json)
+        elif isinstance(values, dict):
+            if "fontes_json" in values and "fontes" not in values:
+                values["fontes"] = _parse_json_list(values.get("fontes_json"))
+            if "nli_votos_json" in values and "nli_votos" not in values:
+                values["nli_votos"] = _parse_json_dict(values.get("nli_votos_json"))
         return values
 
 
@@ -530,19 +542,9 @@ class RecuperarSenhaRequest(BaseModel):
 
 
 class RecuperarSenhaResponse(BaseModel):
-    """
-    Resposta da solicitação de recuperação.
-
-    NOTA ACADÊMICA: em produção, o token seria enviado por e-mail e NÃO
-    retornado aqui. Para fins de demonstração do TCC, ele é devolvido na
-    resposta para permitir testar o fluxo sem servidor de e-mail.
-    """
+    """Resposta da solicitação de recuperação de senha."""
 
     mensagem: str = Field(description="Confirmação da solicitação")
-    token_recuperacao: str | None = Field(
-        default=None,
-        description="[MOCK/TCC] Token de redefinição (iria por e-mail em produção)",
-    )
 
 
 class RedefinirSenhaRequest(BaseModel):
@@ -554,3 +556,22 @@ class RedefinirSenhaRequest(BaseModel):
         max_length=72,
         description="Nova senha (mínimo 8 caracteres)",
     )
+
+
+class FonteTopItem(BaseModel):
+    """Domínio de fonte mais consultado pelo usuário."""
+
+    dominio: str = Field(description="Domínio da fonte (ex: g1.globo.com)")
+    total: int = Field(description="Quantidade de vezes que apareceu em verificações")
+    percentual: float = Field(description="Percentual em relação ao total de fontes")
+    tipo_fonte: str | None = Field(default=None)
+    confiabilidade: str | None = Field(default=None)
+
+
+class PontoSerieTemporal(BaseModel):
+    """Ponto de dado para o gráfico de barras do dashboard."""
+
+    label: str = Field(description="Rótulo do eixo X (dia, semana ou mês)")
+    verdadeiras: int = Field(default=0)
+    falsas: int = Field(default=0)
+    inconclusivas: int = Field(default=0)
